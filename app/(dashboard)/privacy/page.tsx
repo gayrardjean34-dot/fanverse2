@@ -1,17 +1,18 @@
 export default function PrivacyPage() {
   return (
     <section className="flex-1 p-4 lg:p-8 max-w-3xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Privacy Policy</h1>
-      <div className="prose prose-invert prose-gray max-w-none text-gray-400 space-y-4">
+      <h1 className="text-3xl font-bold mb-8">Privacy Policy</h1>
+      <div className="prose prose-invert prose-gray max-w-none space-y-4 text-gray-400">
         <p>Last updated: February 2026</p>
-        <p>This Privacy Policy describes how Fanverse collects, uses, and protects your information.</p>
-        <h2 className="text-xl font-semibold text-[#FEFEFE] mt-8">1. Information We Collect</h2>
-        <p>We collect your email address, payment information (processed by Stripe), and usage data.</p>
-        <h2 className="text-xl font-semibold text-[#FEFEFE] mt-8">2. How We Use Your Information</h2>
-        <p>To provide and improve our service, process payments, and communicate with you.</p>
-        <h2 className="text-xl font-semibold text-[#FEFEFE] mt-8">3. Data Security</h2>
-        <p>We implement industry-standard security measures to protect your data.</p>
-        <p className="text-gray-500 mt-8 italic">This is a placeholder. Replace with your actual privacy policy.</p>
+        <p>Your privacy is important to us. This policy describes how Fanverse collects, uses, and protects your data.</p>
+        <h2 className="text-xl font-semibold text-[#FEFEFE]">1. Data We Collect</h2>
+        <p>Account information (email, name), usage data (workflow runs, credit transactions), and payment information (processed securely via Stripe).</p>
+        <h2 className="text-xl font-semibold text-[#FEFEFE]">2. How We Use Your Data</h2>
+        <p>To provide the service, process payments, improve our platform, and communicate important updates.</p>
+        <h2 className="text-xl font-semibold text-[#FEFEFE]">3. Data Protection</h2>
+        <p>We use industry-standard security measures. Payment data is handled exclusively by Stripe.</p>
+        <h2 className="text-xl font-semibold text-[#FEFEFE]">4. Contact</h2>
+        <p>For privacy inquiries, contact us at privacy@fanverse.ai</p>
       </div>
     </section>
   );
