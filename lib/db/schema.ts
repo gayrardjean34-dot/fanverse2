@@ -5,6 +5,8 @@ import {
   text,
   timestamp,
   integer,
+  boolean,
+  json,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
@@ -68,6 +70,63 @@ export const invitations = pgTable('invitations', {
   status: varchar('status', { length: 20 }).notNull().default('pending'),
 });
 
+// ===== FANVERSE NEW TABLES =====
+
+export const creditLedger = pgTable('credit_ledger', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => users.id),
+  type: varchar('type', { length: 20 }).notNull(), // grant, purchase, spend, refund
+  amount: integer('amount').notNull(), // positive = credit, negative = debit
+  reason: text('reason').notNull(),
+  stripePaymentIntentId: text('stripe_payment_intent_id'),
+  relatedRunId: integer('related_run_id'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const workflows = pgTable('workflows', {
+  id: serial('id').primaryKey(),
+  slug: varchar('slug', { length: 100 }).notNull().unique(),
+  name: varchar('name', { length: 200 }).notNull(),
+  description: text('description'),
+  creditCost: integer('credit_cost').notNull().default(1),
+  isActive: boolean('is_active').notNull().default(true),
+  n8nWebhookUrl: text('n8n_webhook_url'),
+  inputSchema: json('input_schema').$type<Record<string, any>>(),
+  outputSchema: json('output_schema').$type<Record<string, any>>(),
+  allowedPlans: json('allowed_plans').$type<string[]>().default([]),
+  allowedModels: json('allowed_models').$type<string[]>().default([]),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const workflowRuns = pgTable('workflow_runs', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => users.id),
+  workflowId: integer('workflow_id')
+    .notNull()
+    .references(() => workflows.id),
+  status: varchar('status', { length: 20 }).notNull().default('queued'), // queued, running, succeeded, failed
+  model: varchar('model', { length: 50 }),
+  input: json('input').$type<Record<string, any>>(),
+  output: json('output').$type<Record<string, any>>(),
+  n8nExecutionId: text('n8n_execution_id'),
+  error: text('error'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const processedStripeEvents = pgTable('processed_stripe_events', {
+  id: serial('id').primaryKey(),
+  stripeEventId: text('stripe_event_id').notNull().unique(),
+  processedAt: timestamp('processed_at').notNull().defaultNow(),
+});
+
+// ===== RELATIONS =====
+
 export const teamsRelations = relations(teams, ({ many }) => ({
   teamMembers: many(teamMembers),
   activityLogs: many(activityLogs),
@@ -77,6 +136,8 @@ export const teamsRelations = relations(teams, ({ many }) => ({
 export const usersRelations = relations(users, ({ many }) => ({
   teamMembers: many(teamMembers),
   invitationsSent: many(invitations),
+  creditTransactions: many(creditLedger),
+  workflowRuns: many(workflowRuns),
 }));
 
 export const invitationsRelations = relations(invitations, ({ one }) => ({
@@ -112,6 +173,30 @@ export const activityLogsRelations = relations(activityLogs, ({ one }) => ({
   }),
 }));
 
+export const creditLedgerRelations = relations(creditLedger, ({ one }) => ({
+  user: one(users, {
+    fields: [creditLedger.userId],
+    references: [users.id],
+  }),
+}));
+
+export const workflowsRelations = relations(workflows, ({ many }) => ({
+  runs: many(workflowRuns),
+}));
+
+export const workflowRunsRelations = relations(workflowRuns, ({ one }) => ({
+  user: one(users, {
+    fields: [workflowRuns.userId],
+    references: [users.id],
+  }),
+  workflow: one(workflows, {
+    fields: [workflowRuns.workflowId],
+    references: [workflows.id],
+  }),
+}));
+
+// ===== TYPES =====
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Team = typeof teams.$inferSelect;
@@ -122,6 +207,9 @@ export type ActivityLog = typeof activityLogs.$inferSelect;
 export type NewActivityLog = typeof activityLogs.$inferInsert;
 export type Invitation = typeof invitations.$inferSelect;
 export type NewInvitation = typeof invitations.$inferInsert;
+export type CreditTransaction = typeof creditLedger.$inferSelect;
+export type Workflow = typeof workflows.$inferSelect;
+export type WorkflowRun = typeof workflowRuns.$inferSelect;
 export type TeamDataWithMembers = Team & {
   teamMembers: (TeamMember & {
     user: Pick<User, 'id' | 'name' | 'email'>;
