@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { getActiveWorkflows } from '@/lib/db/queries';
+import { getWorkflows } from '@/lib/db/queries';
 
 export async function GET() {
-  const wfs = await getActiveWorkflows();
-  return NextResponse.json(wfs);
+  const workflows = await getWorkflows();
+  return NextResponse.json(workflows);
 }
