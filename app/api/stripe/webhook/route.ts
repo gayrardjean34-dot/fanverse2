@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
       case 'invoice.paid': {
         const invoice = event.data.object as Stripe.Invoice;
-        if (invoice.subscription && invoice.customer) {
+        if ((invoice as any).subscription && invoice.customer) {
           const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer.id;
           const team = await getTeamByStripeCustomerId(customerId);
           if (team) {
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
                 type: 'grant',
                 amount: MONTHLY_CREDITS_GRANT,
                 reason: `Monthly subscription credit grant`,
-                stripePaymentIntentId: invoice.payment_intent as string || undefined,
+                stripePaymentIntentId: (invoice as any).payment_intent as string || undefined,
               });
             }
           }
