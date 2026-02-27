@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
         console.log('[POLL] Task', gen.externalTaskId, 'status:', JSON.stringify(data));
 
         // Try to find image URL
-        const imageUrl = findImageUrl(data);
+        const imageUrl = findMediaUrl(data);
         const isCompleted = data.status === 'completed' || data.status === 'success' || data.status === 'done';
         const isFailed = data.status === 'failed' || data.status === 'error';
 
@@ -83,18 +83,18 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function findImageUrl(body: any): string | null {
+function findMediaUrl(body: any): string | null {
   if (!body) return null;
   const candidates = [
-    body.output?.image_url, body.output?.url, body.output?.imageUrl, body.output?.image,
-    body.image_url, body.imageUrl, body.image,
-    body.result?.url, body.result?.image_url, body.result?.imageUrl, body.result?.image,
-    body.url, body.data?.url, body.data?.image_url,
+    body.output?.image_url, body.output?.video_url, body.output?.url, body.output?.imageUrl, body.output?.videoUrl, body.output?.image, body.output?.video,
+    body.image_url, body.video_url, body.imageUrl, body.videoUrl, body.image, body.video,
+    body.result?.url, body.result?.image_url, body.result?.video_url, body.result?.imageUrl, body.result?.videoUrl, body.result?.image, body.result?.video,
+    body.url, body.data?.url, body.data?.image_url, body.data?.video_url,
   ];
   for (const c of candidates) {
     if (typeof c === 'string' && c.startsWith('http')) return c;
   }
-  const arrays = [body.output?.images, body.result?.images, body.images, body.data?.images];
+  const arrays = [body.output?.images, body.output?.videos, body.result?.images, body.result?.videos, body.images, body.videos, body.data?.images, body.data?.videos];
   for (const arr of arrays) {
     if (Array.isArray(arr) && arr.length > 0) {
       const first = arr[0];
@@ -103,7 +103,7 @@ function findImageUrl(body: any): string | null {
     }
   }
   const json = JSON.stringify(body);
-  const urlMatch = json.match(/https?:\/\/[^"\\]+\.(?:png|jpg|jpeg|webp)[^"\\]*/i);
+  const urlMatch = json.match(/https?:\/\/[^"\\]+\.(?:png|jpg|jpeg|webp|mp4|webm|mov)[^"\\]*/i);
   if (urlMatch) return urlMatch[0];
   return null;
 }
