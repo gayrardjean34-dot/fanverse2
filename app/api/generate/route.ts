@@ -140,18 +140,21 @@ export async function POST(request: NextRequest) {
         });
 
         const data = await res.json();
+        console.log('[GENERATE] kie.ai response for gen', gen.id, ':', JSON.stringify(data));
 
         if (!res.ok) {
           await db.update(generations)
-            .set({ status: 'failed', error: data.message || 'API error', updatedAt: new Date() })
+            .set({ status: 'failed', error: data.message || data.error || 'API error', resultData: data, updatedAt: new Date() })
             .where(eq(generations.id, gen.id));
-          return { id: gen.id, status: 'failed' as const, error: data.message };
+          return { id: gen.id, status: 'failed' as const, error: data.message || data.error };
         }
 
+        const taskId = data.taskId || data.id || data.job_id || data.data?.taskId || data.data?.id || null;
         await db.update(generations)
           .set({
             status: 'processing',
-            externalTaskId: data.taskId || data.id || data.job_id || null,
+            externalTaskId: taskId,
+            resultData: data,
             updatedAt: new Date(),
           })
           .where(eq(generations.id, gen.id));
