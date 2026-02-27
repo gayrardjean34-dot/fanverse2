@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
-import { Home, LogOut, Sparkles, CreditCard, Cpu, Workflow, Menu, X, Paintbrush } from 'lucide-react';
+import { Home, LogOut, Sparkles, CreditCard, Cpu, Workflow, Menu, X, Paintbrush, Coins } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -80,6 +80,23 @@ function UserMenu() {
   );
 }
 
+function CreditBadge() {
+  const { data } = useSWR<{ balance: number }>('/api/credits/balance', fetcher, { refreshInterval: 10000 });
+  const { data: user } = useSWR<User>('/api/user', fetcher);
+
+  if (!user) return null;
+
+  const balance = data?.balance ?? 0;
+
+  return (
+    <Link href="/pricing" className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#222] border border-[#333] hover:border-[#28B8F6]/30 transition-colors">
+      <Coins className="h-4 w-4 text-[#28B8F6]" />
+      <span className="text-sm font-semibold text-[#FEFEFE]">{balance}</span>
+      <span className="text-xs text-gray-500 hidden sm:inline">credits</span>
+    </Link>
+  );
+}
+
 function Header() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -112,6 +129,9 @@ function Header() {
           </nav>
         </div>
         <div className="flex items-center gap-3">
+          <Suspense fallback={null}>
+            <CreditBadge />
+          </Suspense>
           <Suspense fallback={<div className="h-9" />}>
             <UserMenu />
           </Suspense>

@@ -17,6 +17,10 @@ import {
   ChevronDown,
   ChevronUp,
   Bookmark,
+  Trash2,
+  CheckSquare,
+  Square,
+  AlertTriangle,
 } from 'lucide-react';
 import { AI_PROVIDERS, PROVIDER_IDS } from '@/lib/ai/providers';
 
@@ -48,18 +52,48 @@ function getCreditCost(resolution: string, batchSize: number): number {
   return (resolution === '4K' ? 25 : 20) * batchSize;
 }
 
+// ── Download helper ──
+async function downloadImage(url: string, filename?: string) {
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename || `fanverse-${Date.now()}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+  } catch {
+    // Fallback: open in new tab
+    window.open(url, '_blank');
+  }
+}
+
 // ── Image Lightbox ──
 function ImageModal({
   gen,
   onClose,
   onUseAsReference,
   onRecreate,
+  onDelete,
 }: {
   gen: Generation;
   onClose: () => void;
   onUseAsReference: (url: string) => void;
   onRecreate: (gen: Generation) => void;
+  onDelete: (ids: number[]) => void;
 }) {
+  const [copied, setCopied] = useState(false);
+
+  function handleCopyPrompt() {
+    navigator.clipboard.writeText(gen.prompt).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="bg-[#222] border border-[#333] rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
@@ -68,8 +102,18 @@ function ImageModal({
           <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="h-5 w-5" /></button>
         </div>
 
-        {gen.resultUrl && (
+        {gen.status === 'completed' && gen.resultUrl && (
           <img src={gen.resultUrl} alt="Generated" className="w-full rounded-xl mb-4 max-h-[50vh] object-contain bg-black" />
+        )}
+
+        {gen.status === 'failed' && (
+          <div className="flex items-center justify-center h-48 bg-[#1a1a1a] rounded-xl mb-4">
+            <div className="text-center">
+              <AlertTriangle className="h-10 w-10 text-red-400 mx-auto mb-2" />
+              <p className="text-red-400 font-medium">Generation Failed</p>
+              {gen.error && <p className="text-red-400/60 text-sm mt-1 max-w-md">{gen.error}</p>}
+            </div>
+          </div>
         )}
 
         <div className="bg-[#1a1a1a] rounded-lg p-3 mb-4">
@@ -81,15 +125,12 @@ function ImageModal({
 
         <div className="flex flex-wrap gap-2">
           {gen.resultUrl && (
-            <a
-              href={gen.resultUrl}
-              download
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={() => downloadImage(gen.resultUrl!)}
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#28B8F6] text-[#191919] text-sm font-medium hover:bg-[#28B8F6]/80 transition-colors"
             >
               <Download className="h-4 w-4" /> Download
-            </a>
+            </button>
           )}
           {gen.resultUrl && (
             <button
@@ -100,16 +141,22 @@ function ImageModal({
             </button>
           )}
           <button
-            onClick={() => { navigator.clipboard.writeText(gen.prompt); }}
+            onClick={handleCopyPrompt}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#2a2a2a] border border-[#333] text-gray-300 text-sm font-medium hover:bg-[#333] transition-colors"
           >
-            <Copy className="h-4 w-4" /> Copy Prompt
+            <Copy className="h-4 w-4" /> {copied ? 'Copied!' : 'Copy Prompt'}
           </button>
           <button
             onClick={() => { onRecreate(gen); onClose(); }}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#2a2a2a] border border-[#333] text-gray-300 text-sm font-medium hover:bg-[#333] transition-colors"
           >
             <RefreshCw className="h-4 w-4" /> Recreate
+          </button>
+          <button
+            onClick={() => { onDelete([gen.id]); onClose(); }}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-medium hover:bg-red-500/20 transition-colors"
+          >
+            <Trash2 className="h-4 w-4" /> Delete
           </button>
         </div>
       </div>
@@ -118,23 +165,57 @@ function ImageModal({
 }
 
 // ── Generation Card ──
-function GenCard({ gen, onClick }: { gen: Generation; onClick: () => void }) {
+function GenCard({
+  gen,
+  onClick,
+  selected,
+  onToggleSelect,
+  selectionMode,
+}: {
+  gen: Generation;
+  onClick: () => void;
+  selected: boolean;
+  onToggleSelect: () => void;
+  selectionMode: boolean;
+}) {
   const isPending = gen.status === 'pending' || gen.status === 'processing';
   const isFailed = gen.status === 'failed';
+
+  function handleClick(e: React.MouseEvent) {
+    if (selectionMode) {
+      e.stopPropagation();
+      onToggleSelect();
+    } else {
+      onClick();
+    }
+  }
 
   return (
     <div
       className={`relative group rounded-xl overflow-hidden border transition-all cursor-pointer ${
-        isFailed
+        selected
+          ? 'border-[#28B8F6] ring-2 ring-[#28B8F6]/30'
+          : isFailed
           ? 'border-red-500/30 bg-[#222]'
           : isPending
           ? 'border-[#28B8F6]/30 bg-[#222]'
           : 'border-[#333] bg-[#222] hover:border-[#28B8F6]/50'
       }`}
-      onClick={onClick}
+      onClick={handleClick}
     >
+      {/* Selection checkbox */}
+      {selectionMode && (
+        <div className="absolute top-2 left-2 z-10">
+          {selected ? (
+            <CheckSquare className="h-5 w-5 text-[#28B8F6]" />
+          ) : (
+            <Square className="h-5 w-5 text-gray-400" />
+          )}
+        </div>
+      )}
+
       {isPending && (
-        <div className="aspect-square flex items-center justify-center">
+        <div className="aspect-square flex items-center justify-center bg-[#1a1a1a]">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin text-[#28B8F6] mx-auto mb-2" />
             <span className="text-xs text-gray-500">Generating...</span>
@@ -142,10 +223,10 @@ function GenCard({ gen, onClick }: { gen: Generation; onClick: () => void }) {
         </div>
       )}
       {isFailed && (
-        <div className="aspect-square flex items-center justify-center p-4">
+        <div className="aspect-square flex items-center justify-center bg-[#1a1a1a] p-4">
           <div className="text-center">
-            <X className="h-8 w-8 text-red-400 mx-auto mb-2" />
-            <span className="text-xs text-red-400">Failed</span>
+            <AlertTriangle className="h-8 w-8 text-red-400 mx-auto mb-2" />
+            <span className="text-sm font-medium text-red-400">Failed</span>
             {gen.error && <p className="text-xs text-red-400/60 mt-1 line-clamp-2">{gen.error}</p>}
           </div>
         </div>
@@ -164,6 +245,15 @@ function GenCard({ gen, onClick }: { gen: Generation; onClick: () => void }) {
           </div>
         </>
       )}
+      {gen.status === 'completed' && !gen.resultUrl && (
+        <div className="aspect-square flex items-center justify-center bg-[#1a1a1a] p-4">
+          <div className="text-center">
+            <AlertTriangle className="h-8 w-8 text-yellow-400 mx-auto mb-2" />
+            <span className="text-sm font-medium text-yellow-400">No image</span>
+            <p className="text-xs text-gray-500 mt-1">Completed but no result</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -172,6 +262,7 @@ function GenCard({ gen, onClick }: { gen: Generation; onClick: () => void }) {
 export default function StudioPage() {
   const [prompt, setPrompt] = useState('');
   const [systemPrompt, setSystemPrompt] = useState('');
+  const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [model, setModel] = useState<string>('nano-banana-pro');
   const [aspectRatio, setAspectRatio] = useState('1:1');
   const [resolution, setResolution] = useState('1K');
@@ -183,6 +274,8 @@ export default function StudioPage() {
   const [generating, setGenerating] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [selectedGen, setSelectedGen] = useState<Generation | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: history, mutate: mutateHistory } = useSWR<Generation[]>(
@@ -201,7 +294,6 @@ export default function StudioPage() {
     const interval = setInterval(() => {
       mutateHistory();
       pollCount++;
-      // Every 5th poll (10s), also trigger server-side polling of kie.ai
       if (pollCount % 5 === 0) {
         fetch('/api/generate/poll', { method: 'POST' }).catch(() => {});
       }
@@ -214,7 +306,6 @@ export default function StudioPage() {
     if (!files) return;
     const remaining = 10 - referenceImages.length;
     const toProcess = Array.from(files).slice(0, remaining);
-
     toProcess.forEach((file) => {
       const reader = new FileReader();
       reader.onload = () => {
@@ -240,6 +331,7 @@ export default function StudioPage() {
   const handleRecreate = useCallback((gen: Generation) => {
     setPrompt(gen.prompt);
     setSystemPrompt(gen.systemPrompt || '');
+    if (gen.systemPrompt) setShowSystemPrompt(true);
     setModel(gen.model);
     setAspectRatio(gen.aspectRatio || '1:1');
     setResolution(gen.resolution || '1K');
@@ -249,10 +341,45 @@ export default function StudioPage() {
     setReferenceImages(gen.referenceImages || []);
   }, []);
 
+  const handleDelete = useCallback(async (ids: number[]) => {
+    try {
+      await fetch('/api/generate/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      });
+      mutateHistory();
+      setSelectedIds(new Set());
+    } catch {}
+  }, [mutateHistory]);
+
+  const handleDeleteSelected = useCallback(() => {
+    if (selectedIds.size === 0) return;
+    handleDelete(Array.from(selectedIds));
+    setSelectionMode(false);
+  }, [selectedIds, handleDelete]);
+
+  const handleSelectAll = useCallback(() => {
+    if (!history) return;
+    if (selectedIds.size === history.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(history.map((g) => g.id)));
+    }
+  }, [history, selectedIds.size]);
+
+  const toggleSelection = useCallback((id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
   async function handleGenerate() {
     if (!prompt.trim() || generating) return;
     setGenerating(true);
-
     try {
       const res = await fetch('/api/generate', {
         method: 'POST',
@@ -270,7 +397,6 @@ export default function StudioPage() {
           batchSize,
         }),
       });
-
       const data = await res.json();
       if (!res.ok) {
         alert(data.error || 'Generation failed');
@@ -289,7 +415,43 @@ export default function StudioPage() {
     <section className="flex flex-col h-[calc(100dvh-68px)]">
       {/* Gallery area — scrollable */}
       <div className="flex-1 overflow-y-auto p-4 lg:p-8">
-        <h1 className="text-2xl lg:text-3xl font-bold mb-6">Studio</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl lg:text-3xl font-bold">Studio</h1>
+          {history && history.length > 0 && (
+            <div className="flex items-center gap-2">
+              {selectionMode ? (
+                <>
+                  <button
+                    onClick={handleSelectAll}
+                    className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded transition-colors"
+                  >
+                    {selectedIds.size === history.length ? 'Deselect All' : 'Select All'}
+                  </button>
+                  <button
+                    onClick={handleDeleteSelected}
+                    disabled={selectedIds.size === 0}
+                    className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded bg-red-500/10 border border-red-500/30 disabled:opacity-30 transition-colors"
+                  >
+                    <Trash2 className="h-3 w-3" /> Delete ({selectedIds.size})
+                  </button>
+                  <button
+                    onClick={() => { setSelectionMode(false); setSelectedIds(new Set()); }}
+                    className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setSelectionMode(true)}
+                  className="text-xs text-gray-500 hover:text-gray-300 px-2 py-1 rounded transition-colors"
+                >
+                  Select
+                </button>
+              )}
+            </div>
+          )}
+        </div>
 
         {(!history || history.length === 0) ? (
           <div className="flex items-center justify-center h-64 text-gray-500">
@@ -302,7 +464,14 @@ export default function StudioPage() {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             {history.map((gen) => (
-              <GenCard key={gen.id} gen={gen} onClick={() => setSelectedGen(gen)} />
+              <GenCard
+                key={gen.id}
+                gen={gen}
+                onClick={() => setSelectedGen(gen)}
+                selected={selectedIds.has(gen.id)}
+                onToggleSelect={() => toggleSelection(gen.id)}
+                selectionMode={selectionMode}
+              />
             ))}
           </div>
         )}
@@ -312,13 +481,13 @@ export default function StudioPage() {
       <div className="border-t border-[#333] bg-[#1a1a1a] p-4">
         {/* Reference images row */}
         {referenceImages.length > 0 && (
-          <div className="flex gap-2 mb-3 overflow-x-auto pb-2">
+          <div className="flex gap-3 mb-3 overflow-x-auto pb-2">
             {referenceImages.map((img, i) => (
-              <div key={i} className="relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-[#333]">
-                <img src={img} alt="" className="w-full h-full object-cover" />
+              <div key={i} className="relative shrink-0 w-16 h-16">
+                <img src={img} alt="" className="w-full h-full object-cover rounded-lg border border-[#333]" />
                 <button
                   onClick={() => removeReference(i)}
-                  className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5"
+                  className="absolute -top-2 -right-2 bg-red-500 rounded-full w-5 h-5 flex items-center justify-center shadow-lg z-10"
                 >
                   <X className="h-3 w-3 text-white" />
                 </button>
@@ -335,6 +504,26 @@ export default function StudioPage() {
           </div>
         )}
 
+        {/* System prompt — collapsible, full width */}
+        <div className="mb-3">
+          <button
+            onClick={() => setShowSystemPrompt(!showSystemPrompt)}
+            className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 mb-1 transition-colors"
+          >
+            {showSystemPrompt ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
+            System Prompt
+          </button>
+          {showSystemPrompt && (
+            <textarea
+              className="w-full bg-[#222] border border-[#333] text-[#FEFEFE] rounded-xl px-4 py-3 text-sm resize-none outline-none focus:border-[#28B8F6]/50 transition-colors placeholder-gray-500"
+              rows={3}
+              placeholder="Optional system prompt to guide the AI behavior..."
+              value={systemPrompt}
+              onChange={(e) => setSystemPrompt(e.target.value)}
+            />
+          )}
+        </div>
+
         {/* Advanced params toggle */}
         <button
           onClick={() => setShowAdvanced(!showAdvanced)}
@@ -345,16 +534,7 @@ export default function StudioPage() {
         </button>
 
         {showAdvanced && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-3">
-            <div>
-              <Label className="text-xs text-gray-500">System Prompt</Label>
-              <Input
-                className="bg-[#222] border-[#333] text-[#FEFEFE] text-sm h-8 mt-1"
-                placeholder="Optional..."
-                value={systemPrompt}
-                onChange={(e) => setSystemPrompt(e.target.value)}
-              />
-            </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-3">
             <div>
               <Label className="text-xs text-gray-500">Aspect Ratio</Label>
               <select
@@ -378,38 +558,27 @@ export default function StudioPage() {
             <div>
               <Label className="text-xs text-gray-500">Temperature</Label>
               <Input
-                type="number"
-                step="0.1"
-                min="0"
-                max="2"
+                type="number" step="0.1" min="0" max="2"
                 className="bg-[#222] border-[#333] text-[#FEFEFE] text-sm h-8 mt-1"
-                placeholder="0.7"
-                value={temperature}
+                placeholder="0.7" value={temperature}
                 onChange={(e) => setTemperature(e.target.value)}
               />
             </div>
             <div>
               <Label className="text-xs text-gray-500">Top P</Label>
               <Input
-                type="number"
-                step="0.1"
-                min="0"
-                max="1"
+                type="number" step="0.1" min="0" max="1"
                 className="bg-[#222] border-[#333] text-[#FEFEFE] text-sm h-8 mt-1"
-                placeholder="0.9"
-                value={topP}
+                placeholder="0.9" value={topP}
                 onChange={(e) => setTopP(e.target.value)}
               />
             </div>
             <div>
               <Label className="text-xs text-gray-500">Top K</Label>
               <Input
-                type="number"
-                step="1"
-                min="1"
+                type="number" step="1" min="1"
                 className="bg-[#222] border-[#333] text-[#FEFEFE] text-sm h-8 mt-1"
-                placeholder="40"
-                value={topK}
+                placeholder="40" value={topK}
                 onChange={(e) => setTopK(e.target.value)}
               />
             </div>
@@ -433,18 +602,20 @@ export default function StudioPage() {
           <div className="flex-1">
             <div className="flex gap-2">
               {/* Add reference images button */}
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="shrink-0 h-12 w-12 rounded-xl bg-[#222] border border-[#333] flex items-center justify-center text-gray-400 hover:text-[#28B8F6] hover:border-[#28B8F6]/30 transition-colors"
-                title="Add reference images (max 10)"
-              >
-                <ImagePlus className="h-5 w-5" />
+              <div className="relative shrink-0">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="h-12 w-12 rounded-xl bg-[#222] border border-[#333] flex items-center justify-center text-gray-400 hover:text-[#28B8F6] hover:border-[#28B8F6]/30 transition-colors"
+                  title="Add reference images (max 10)"
+                >
+                  <ImagePlus className="h-5 w-5" />
+                </button>
                 {referenceImages.length > 0 && (
                   <span className="absolute -top-1 -right-1 bg-[#28B8F6] text-[#191919] text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                     {referenceImages.length}
                   </span>
                 )}
-              </button>
+              </div>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -508,12 +679,13 @@ export default function StudioPage() {
       </div>
 
       {/* Lightbox modal */}
-      {selectedGen && selectedGen.status === 'completed' && (
+      {selectedGen && (
         <ImageModal
           gen={selectedGen}
           onClose={() => setSelectedGen(null)}
           onUseAsReference={addReferenceFromUrl}
           onRecreate={handleRecreate}
+          onDelete={handleDelete}
         />
       )}
     </section>
