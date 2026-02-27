@@ -119,6 +119,41 @@ export const workflowRuns = pgTable('workflow_runs', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
+export const generations = pgTable('generations', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => users.id),
+  batchId: varchar('batch_id', { length: 100 }).notNull(),
+  model: varchar('model', { length: 50 }).notNull(),
+  prompt: text('prompt').notNull(),
+  systemPrompt: text('system_prompt'),
+  aspectRatio: varchar('aspect_ratio', { length: 20 }).default('1:1'),
+  resolution: varchar('resolution', { length: 10 }).default('1K'),
+  temperature: integer('temperature'),
+  topP: integer('top_p'),
+  topK: integer('top_k'),
+  referenceImages: json('reference_images').$type<string[]>().default([]),
+  status: varchar('status', { length: 20 }).notNull().default('pending'), // pending, processing, completed, failed
+  resultUrl: text('result_url'),
+  resultData: json('result_data').$type<Record<string, any>>(),
+  externalTaskId: text('external_task_id'),
+  creditCost: integer('credit_cost').notNull(),
+  error: text('error'),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const generationsRelations = relations(generations, ({ one }) => ({
+  user: one(users, {
+    fields: [generations.userId],
+    references: [users.id],
+  }),
+}));
+
+export type Generation = typeof generations.$inferSelect;
+
 export const customWorkflowRequests = pgTable('custom_workflow_requests', {
   id: serial('id').primaryKey(),
   userId: integer('user_id')
