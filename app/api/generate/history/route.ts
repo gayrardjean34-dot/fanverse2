@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { desc, eq, gt, and } from 'drizzle-orm';
 import { db } from '@/lib/db/drizzle';
 import { generations } from '@/lib/db/schema';
-import { eq, desc, gt, and } from 'drizzle-orm';
 import { getUser } from '@/lib/db/queries';
 
 export async function GET(request: NextRequest) {
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(results);
   } catch (error: any) {
-    console.error('Generation history error:', error);
+    console.error('History error:', error);
     return NextResponse.json({ error: 'Something went wrong.' }, { status: 500 });
   }
 }
