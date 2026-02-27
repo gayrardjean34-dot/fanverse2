@@ -25,15 +25,45 @@ export default async function PricingPage() {
         </p>
       </div>
 
-      {/* Subscription */}
-      <div className="max-w-md mx-auto mb-20">
+      {/* Subscriptions */}
+      <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto mb-20">
+        {/* Starter Plan */}
+        <div className="rounded-2xl bg-[#222] border border-[#333] hover:border-[#7F6DE7]/50 transition-all p-8">
+          <h2 className="text-2xl font-bold mb-2">Fanverse Starter</h2>
+          <p className="text-gray-400 text-sm mb-6">500 credits/month + access to 1 workflow of your choice</p>
+          <p className="text-5xl font-bold mb-1">
+            $9.99
+            <span className="text-lg font-normal text-gray-400"> /month</span>
+          </p>
+          <p className="text-sm text-gray-500 mb-8">14-day free trial included</p>
+          <ul className="space-y-3 mb-8">
+            {[
+              '500 credits per month',
+              'Access to 1 AI workflow of your choice',
+              'All 4 AI models',
+              'Priority processing',
+              'Email support',
+            ].map((f) => (
+              <li key={f} className="flex items-start gap-2">
+                <Check className="h-5 w-5 text-[#7F6DE7] shrink-0 mt-0.5" />
+                <span className="text-gray-300">{f}</span>
+              </li>
+            ))}
+          </ul>
+          <form action={checkoutAction}>
+            <input type="hidden" name="priceId" value={process.env.STRIPE_PRICE_STARTER || ''} />
+            <SubmitButton />
+          </form>
+        </div>
+
+        {/* Pro Plan */}
         <div className="rounded-2xl bg-[#222] border border-[#28B8F6]/30 p-8 fan-glow">
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="h-5 w-5 text-[#28B8F6]" />
             <span className="text-sm font-medium text-[#28B8F6]">Most Popular</span>
           </div>
           <h2 className="text-2xl font-bold mb-2">{proPlan?.name || 'Fanverse Pro'}</h2>
-          <p className="text-gray-400 text-sm mb-6">100 credits/month + access to all workflows</p>
+          <p className="text-gray-400 text-sm mb-6">1000 credits/month + access to all workflows</p>
           <p className="text-5xl font-bold mb-1">
             ${(proPrice?.unitAmount || 1900) / 100}
             <span className="text-lg font-normal text-gray-400"> /month</span>
@@ -41,7 +71,7 @@ export default async function PricingPage() {
           <p className="text-sm text-gray-500 mb-8">14-day free trial included</p>
           <ul className="space-y-3 mb-8">
             {[
-              '100 credits per month',
+              '1000 credits per month',
               'Access to all AI workflows',
               'All 4 AI models',
               'Priority processing',

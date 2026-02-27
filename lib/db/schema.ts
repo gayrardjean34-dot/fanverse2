@@ -119,6 +119,31 @@ export const workflowRuns = pgTable('workflow_runs', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
+export const customWorkflowRequests = pgTable('custom_workflow_requests', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => users.id),
+  name: varchar('name', { length: 200 }).notNull(),
+  description: text('description').notNull(),
+  useCase: text('use_case'),
+  status: varchar('status', { length: 20 }).notNull().default('pending'), // pending, reviewed, accepted, rejected
+  adminNotes: text('admin_notes'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const passwordResetTokens = pgTable('password_reset_tokens', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => users.id),
+  token: varchar('token', { length: 255 }).notNull().unique(),
+  expiresAt: timestamp('expires_at').notNull(),
+  usedAt: timestamp('used_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
 export const processedStripeEvents = pgTable('processed_stripe_events', {
   id: serial('id').primaryKey(),
   stripeEventId: text('stripe_event_id').notNull().unique(),
