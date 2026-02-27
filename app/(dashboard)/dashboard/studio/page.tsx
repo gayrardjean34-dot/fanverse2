@@ -193,11 +193,19 @@ export default function StudioPage() {
 
   const creditCost = getCreditCost(resolution, batchSize);
 
-  // Poll more frequently when there are pending generations
+  // Poll more frequently when there are pending generations + trigger server-side poll
   const hasPending = history?.some((g) => g.status === 'pending' || g.status === 'processing');
   useEffect(() => {
     if (!hasPending) return;
-    const interval = setInterval(() => mutateHistory(), 2000);
+    let pollCount = 0;
+    const interval = setInterval(() => {
+      mutateHistory();
+      pollCount++;
+      // Every 5th poll (10s), also trigger server-side polling of kie.ai
+      if (pollCount % 5 === 0) {
+        fetch('/api/generate/poll', { method: 'POST' }).catch(() => {});
+      }
+    }, 2000);
     return () => clearInterval(interval);
   }, [hasPending, mutateHistory]);
 
