@@ -23,6 +23,7 @@ import {
   AlertTriangle,
   Volume2,
   VolumeX,
+  Sparkles,
 } from 'lucide-react';
 import { AI_PROVIDERS, ACTIVE_PROVIDER_IDS, type ModelConfig } from '@/lib/ai/providers';
 
@@ -74,7 +75,38 @@ function MediaModal({
   onDelete: (ids: number[]) => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const [cleaning, setCleaning] = useState(false);
   const isVideo = gen.resultUrl ? isVideoUrl(gen.resultUrl) : false;
+
+  async function handleCleanDownload() {
+    if (!gen.resultUrl || cleaning) return;
+    setCleaning(true);
+    try {
+      const res = await fetch('/api/generate/cleanify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl: gen.resultUrl }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || 'Clean & download failed');
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `fanverse-clean-${Date.now()}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      alert('Something went wrong');
+    } finally {
+      setCleaning(false);
+    }
+  }
 
   function handleCopyPrompt() {
     navigator.clipboard.writeText(gen.prompt).then(() => {
@@ -136,6 +168,16 @@ function MediaModal({
             >
               <Download className="h-4 w-4" /> Download
             </a>
+          )}
+          {gen.resultUrl && !isVideo && (
+            <button
+              onClick={handleCleanDownload}
+              disabled={cleaning}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#D324D9] text-white text-sm font-medium hover:bg-[#D324D9]/80 transition-colors disabled:opacity-50"
+            >
+              {cleaning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {cleaning ? 'Cleaning...' : 'Clean Metadata & Download'}
+            </button>
           )}
           {gen.resultUrl && !isVideo && (
             <button
