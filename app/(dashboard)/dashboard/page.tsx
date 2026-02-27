@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { customerPortalAction } from '@/lib/payments/actions';
 import { TeamDataWithMembers, User } from '@/lib/db/schema';
-import useSWR from 'swr';
+import useSWR, { mutate } from 'swr';
 import { Suspense } from 'react';
-import { Coins, CreditCard, Zap, ArrowUpRight, ArrowDownRight, Clock } from 'lucide-react';
+import { Coins, CreditCard, Zap, ArrowUpRight, ArrowDownRight, Clock, Gift, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useState } from 'react';
+import { Input } from '@/components/ui/input';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -142,6 +144,72 @@ function RecentTransactions() {
   );
 }
 
+function PromoCode() {
+  const [code, setCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!code.trim() || loading) return;
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      const res = await fetch('/api/promo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: code.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMessage({ type: 'error', text: data.error });
+      } else {
+        setMessage({ type: 'success', text: data.message });
+        setCode('');
+        // Refresh credit balance
+        mutate('/api/credits/balance');
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'Something went wrong.' });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Card className="bg-[#222] border-[#333]">
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-sm font-medium text-gray-400">Promo Code</CardTitle>
+        <Gift className="h-5 w-5 text-[#D324D9]" />
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-gray-500 mb-3">Have a promo code? Redeem it for free credits.</p>
+        <form onSubmit={handleSubmit} className="flex gap-2">
+          <Input
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="Enter promo code"
+            className="bg-[#191919] border-[#333] text-[#FEFEFE] placeholder-gray-500"
+          />
+          <Button
+            type="submit"
+            disabled={loading || !code.trim()}
+            className="bg-[#D324D9] hover:bg-[#D324D9]/80 text-white font-semibold shrink-0"
+          >
+            {loading ? <Loader2 className="animate-spin h-4 w-4" /> : 'Redeem'}
+          </Button>
+        </form>
+        {message && (
+          <p className={`text-sm mt-2 ${message.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+            {message.text}
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function DashboardPage() {
   return (
     <section className="flex-1 p-4 lg:p-8">
@@ -154,13 +222,16 @@ export default function DashboardPage() {
           <SubscriptionStatus />
         </Suspense>
       </div>
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-2 gap-6 mb-8">
         <Suspense fallback={<Card className="bg-[#222] border-[#333] h-[300px]" />}>
           <RecentRuns />
         </Suspense>
         <Suspense fallback={<Card className="bg-[#222] border-[#333] h-[300px]" />}>
           <RecentTransactions />
         </Suspense>
+      </div>
+      <div className="max-w-md">
+        <PromoCode />
       </div>
     </section>
   );
