@@ -77,23 +77,34 @@ export async function GET(request: NextRequest) {
 function findImageUrl(body: any): string | null {
   if (!body) return null;
 
-  // Direct URL fields
+  // Direct URL fields (image + video)
   const candidates = [
     body.output?.image_url,
+    body.output?.video_url,
     body.output?.url,
     body.output?.imageUrl,
+    body.output?.videoUrl,
     body.output?.image,
+    body.output?.video,
     body.image_url,
+    body.video_url,
     body.imageUrl,
+    body.videoUrl,
     body.image,
+    body.video,
     body.result?.url,
     body.result?.image_url,
+    body.result?.video_url,
     body.result?.imageUrl,
+    body.result?.videoUrl,
     body.result?.image,
+    body.result?.video,
     body.url,
     body.data?.url,
     body.data?.image_url,
+    body.data?.video_url,
     body.data?.imageUrl,
+    body.data?.videoUrl,
   ];
 
   for (const c of candidates) {
@@ -101,7 +112,7 @@ function findImageUrl(body: any): string | null {
   }
 
   // Check arrays
-  const arrays = [body.output?.images, body.result?.images, body.images, body.data?.images];
+  const arrays = [body.output?.images, body.output?.videos, body.result?.images, body.result?.videos, body.images, body.videos, body.data?.images, body.data?.videos];
   for (const arr of arrays) {
     if (Array.isArray(arr) && arr.length > 0) {
       const first = arr[0];
@@ -110,9 +121,9 @@ function findImageUrl(body: any): string | null {
     }
   }
 
-  // Deep search for any URL ending in image extension
+  // Deep search for any URL ending in media extension
   const json = JSON.stringify(body);
-  const urlMatch = json.match(/https?:\/\/[^"\\]+\.(?:png|jpg|jpeg|webp)[^"\\]*/i);
+  const urlMatch = json.match(/https?:\/\/[^"\\]+\.(?:png|jpg|jpeg|webp|mp4|webm|mov)[^"\\]*/i);
   if (urlMatch) return urlMatch[0];
 
   return null;

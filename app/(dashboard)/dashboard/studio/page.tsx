@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,8 +21,10 @@ import {
   CheckSquare,
   Square,
   AlertTriangle,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
-import { AI_PROVIDERS, PROVIDER_IDS } from '@/lib/ai/providers';
+import { AI_PROVIDERS, ACTIVE_PROVIDER_IDS, type ModelConfig } from '@/lib/ai/providers';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -45,34 +47,20 @@ type Generation = {
   createdAt: string;
 };
 
-const ASPECT_RATIOS = ['1:1', '4:3', '3:4', '16:9', '9:16', '3:2', '2:3'];
-const RESOLUTIONS = ['1K', '2K', '4K'];
+const IMAGE_ASPECT_RATIOS = ['1:1', '4:3', '3:4', '16:9', '9:16', '3:2', '2:3'];
+const VIDEO_ASPECT_RATIOS = ['16:9', '9:16', '1:1', '4:3', '3:4', '2:3', '3:2'];
 
-function getCreditCost(resolution: string, batchSize: number): number {
-  return (resolution === '4K' ? 25 : 20) * batchSize;
+function isVideoUrl(url: string): boolean {
+  return /\.(mp4|webm|mov)/i.test(url);
 }
 
-// ── Download helper ──
-async function downloadImage(url: string, filename?: string) {
-  try {
-    const res = await fetch(url);
-    const blob = await res.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = filename || `fanverse-${Date.now()}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(blobUrl);
-  } catch {
-    // Fallback: open in new tab
-    window.open(url, '_blank');
-  }
+// ── Download via proxy ──
+function getDownloadUrl(url: string): string {
+  return `/api/generate/download?url=${encodeURIComponent(url)}`;
 }
 
-// ── Image Lightbox ──
-function ImageModal({
+// ── Image/Video Lightbox ──
+function MediaModal({
   gen,
   onClose,
   onUseAsReference,
@@ -86,6 +74,7 @@ function ImageModal({
   onDelete: (ids: number[]) => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const isVideo = gen.resultUrl ? isVideoUrl(gen.resultUrl) : false;
 
   function handleCopyPrompt() {
     navigator.clipboard.writeText(gen.prompt).then(() => {
@@ -98,12 +87,28 @@ function ImageModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="bg-[#222] border border-[#333] rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <span className="text-xs text-gray-500 font-mono">{gen.model} • {gen.resolution} • {gen.aspectRatio}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500 font-mono">{gen.model}</span>
+            <span className="text-xs px-1.5 py-0.5 rounded bg-[#333] text-gray-400">
+              {isVideo ? '🎬 Video' : '🖼️ Image'}
+            </span>
+            <span className="text-xs text-gray-500">{gen.creditCost} cr</span>
+          </div>
           <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="h-5 w-5" /></button>
         </div>
 
         {gen.status === 'completed' && gen.resultUrl && (
-          <img src={gen.resultUrl} alt="Generated" className="w-full rounded-xl mb-4 max-h-[50vh] object-contain bg-black" />
+          isVideo ? (
+            <video
+              src={gen.resultUrl}
+              controls
+              autoPlay
+              loop
+              className="w-full rounded-xl mb-4 max-h-[50vh] bg-black"
+            />
+          ) : (
+            <img src={gen.resultUrl} alt="Generated" className="w-full rounded-xl mb-4 max-h-[50vh] object-contain bg-black" />
+          )
         )}
 
         {gen.status === 'failed' && (
@@ -125,14 +130,14 @@ function ImageModal({
 
         <div className="flex flex-wrap gap-2">
           {gen.resultUrl && (
-            <button
-              onClick={() => downloadImage(gen.resultUrl!)}
+            <a
+              href={getDownloadUrl(gen.resultUrl)}
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#28B8F6] text-[#191919] text-sm font-medium hover:bg-[#28B8F6]/80 transition-colors"
             >
               <Download className="h-4 w-4" /> Download
-            </button>
+            </a>
           )}
-          {gen.resultUrl && (
+          {gen.resultUrl && !isVideo && (
             <button
               onClick={() => { onUseAsReference(gen.resultUrl!); onClose(); }}
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#7F6DE7] text-white text-sm font-medium hover:bg-[#7F6DE7]/80 transition-colors"
@@ -180,6 +185,7 @@ function GenCard({
 }) {
   const isPending = gen.status === 'pending' || gen.status === 'processing';
   const isFailed = gen.status === 'failed';
+  const isVideo = gen.resultUrl ? isVideoUrl(gen.resultUrl) : (AI_PROVIDERS[gen.model]?.type === 'video');
 
   function handleClick(e: React.MouseEvent) {
     if (selectionMode) {
@@ -203,14 +209,18 @@ function GenCard({
       }`}
       onClick={handleClick}
     >
-      {/* Selection checkbox */}
       {selectionMode && (
         <div className="absolute top-2 left-2 z-10">
-          {selected ? (
-            <CheckSquare className="h-5 w-5 text-[#28B8F6]" />
-          ) : (
-            <Square className="h-5 w-5 text-gray-400" />
-          )}
+          {selected ? <CheckSquare className="h-5 w-5 text-[#28B8F6]" /> : <Square className="h-5 w-5 text-gray-400" />}
+        </div>
+      )}
+
+      {/* Type badge */}
+      {gen.status === 'completed' && gen.resultUrl && (
+        <div className="absolute top-2 right-2 z-10">
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/60 text-white backdrop-blur-sm">
+            {isVideo ? '🎬' : '🖼️'}
+          </span>
         </div>
       )}
 
@@ -219,6 +229,7 @@ function GenCard({
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin text-[#28B8F6] mx-auto mb-2" />
             <span className="text-xs text-gray-500">Generating...</span>
+            <span className="text-[10px] text-gray-600 block mt-0.5">{AI_PROVIDERS[gen.model]?.icon} {gen.model}</span>
           </div>
         </div>
       )}
@@ -232,25 +243,39 @@ function GenCard({
         </div>
       )}
       {gen.status === 'completed' && gen.resultUrl && (
-        <>
-          <img src={gen.resultUrl} alt="" className="aspect-square w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-            <div className="absolute bottom-0 left-0 right-0 p-3">
-              <p className="text-xs text-white line-clamp-2">{gen.prompt}</p>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs text-gray-400">{AI_PROVIDERS[gen.model as keyof typeof AI_PROVIDERS]?.icon} {gen.model}</span>
-                <span className="text-xs text-gray-400">• {gen.creditCost} cr</span>
+        isVideo ? (
+          <>
+            <video src={gen.resultUrl} muted className="aspect-square w-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute bottom-0 left-0 right-0 p-3">
+                <p className="text-xs text-white line-clamp-2">{gen.prompt}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xs text-gray-400">{AI_PROVIDERS[gen.model]?.icon} {gen.model}</span>
+                  <span className="text-xs text-gray-400">• {gen.creditCost} cr</span>
+                </div>
               </div>
             </div>
-          </div>
-        </>
+          </>
+        ) : (
+          <>
+            <img src={gen.resultUrl} alt="" className="aspect-square w-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute bottom-0 left-0 right-0 p-3">
+                <p className="text-xs text-white line-clamp-2">{gen.prompt}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xs text-gray-400">{AI_PROVIDERS[gen.model]?.icon} {gen.model}</span>
+                  <span className="text-xs text-gray-400">• {gen.creditCost} cr</span>
+                </div>
+              </div>
+            </div>
+          </>
+        )
       )}
       {gen.status === 'completed' && !gen.resultUrl && (
         <div className="aspect-square flex items-center justify-center bg-[#1a1a1a] p-4">
           <div className="text-center">
             <AlertTriangle className="h-8 w-8 text-yellow-400 mx-auto mb-2" />
-            <span className="text-sm font-medium text-yellow-400">No image</span>
-            <p className="text-xs text-gray-500 mt-1">Completed but no result</p>
+            <span className="text-sm font-medium text-yellow-400">No result</span>
           </div>
         </div>
       )}
@@ -276,7 +301,39 @@ export default function StudioPage() {
   const [selectedGen, setSelectedGen] = useState<Generation | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  // Video-specific params
+  const [duration, setDuration] = useState('5');
+  const [videoMode, setVideoMode] = useState('standard');
+  const [sound, setSound] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const providerConfig = AI_PROVIDERS[model];
+  const isVideoModel = providerConfig?.type === 'video';
+
+  // Compute credit cost dynamically
+  const creditCost = useMemo(() => {
+    if (!providerConfig) return 0;
+    return providerConfig.getCreditCost({
+      resolution,
+      duration,
+      mode: videoMode,
+      sound,
+    }) * batchSize;
+  }, [providerConfig, resolution, duration, videoMode, sound, batchSize]);
+
+  // Reset params when model changes
+  useEffect(() => {
+    if (!providerConfig) return;
+    if (providerConfig.type === 'video') {
+      setAspectRatio('16:9');
+      setDuration(providerConfig.defaultDuration || '5');
+      if (providerConfig.modes) setVideoMode(providerConfig.modes[0]);
+      setSound(false);
+    } else {
+      setAspectRatio('1:1');
+      setResolution('1K');
+    }
+  }, [model]);
 
   const { data: history, mutate: mutateHistory } = useSWR<Generation[]>(
     '/api/generate/history?limit=100',
@@ -284,9 +341,6 @@ export default function StudioPage() {
     { refreshInterval: 3000 }
   );
 
-  const creditCost = getCreditCost(resolution, batchSize);
-
-  // Poll more frequently when there are pending generations + trigger server-side poll
   const hasPending = history?.some((g) => g.status === 'pending' || g.status === 'processing');
   useEffect(() => {
     if (!hasPending) return;
@@ -305,14 +359,10 @@ export default function StudioPage() {
     const files = e.target.files;
     if (!files) return;
     const remaining = 10 - referenceImages.length;
-    const toProcess = Array.from(files).slice(0, remaining);
-    toProcess.forEach((file) => {
+    Array.from(files).slice(0, remaining).forEach((file) => {
       const reader = new FileReader();
       reader.onload = () => {
-        setReferenceImages((prev) => {
-          if (prev.length >= 10) return prev;
-          return [...prev, reader.result as string];
-        });
+        setReferenceImages((prev) => prev.length >= 10 ? prev : [...prev, reader.result as string]);
       };
       reader.readAsDataURL(file);
     });
@@ -361,18 +411,13 @@ export default function StudioPage() {
 
   const handleSelectAll = useCallback(() => {
     if (!history) return;
-    if (selectedIds.size === history.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(history.map((g) => g.id)));
-    }
+    setSelectedIds(selectedIds.size === history.length ? new Set() : new Set(history.map((g) => g.id)));
   }, [history, selectedIds.size]);
 
   const toggleSelection = useCallback((id: number) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
   }, []);
@@ -381,21 +426,31 @@ export default function StudioPage() {
     if (!prompt.trim() || generating) return;
     setGenerating(true);
     try {
+      const payload: Record<string, any> = {
+        model,
+        prompt: prompt.trim(),
+        systemPrompt: systemPrompt.trim() || undefined,
+        aspectRatio,
+        referenceImages,
+        batchSize,
+      };
+
+      if (isVideoModel) {
+        payload.duration = duration;
+        if (providerConfig.supportsMode) payload.mode = videoMode;
+        if (providerConfig.supportsSound) payload.sound = sound;
+        if (providerConfig.resolutions) payload.resolution = resolution;
+      } else {
+        payload.resolution = resolution;
+        if (temperature) payload.temperature = parseFloat(temperature);
+        if (topP) payload.topP = parseFloat(topP);
+        if (topK) payload.topK = parseInt(topK);
+      }
+
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model,
-          prompt: prompt.trim(),
-          systemPrompt: systemPrompt.trim() || undefined,
-          aspectRatio,
-          resolution,
-          temperature: temperature ? parseFloat(temperature) : undefined,
-          topP: topP ? parseFloat(topP) : undefined,
-          topK: topK ? parseInt(topK) : undefined,
-          referenceImages,
-          batchSize,
-        }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -411,9 +466,11 @@ export default function StudioPage() {
     }
   }
 
+  const aspectRatios = isVideoModel ? VIDEO_ASPECT_RATIOS : IMAGE_ASPECT_RATIOS;
+
   return (
     <section className="flex flex-col h-[calc(100dvh-68px)]">
-      {/* Gallery area — scrollable */}
+      {/* Gallery area */}
       <div className="flex-1 overflow-y-auto p-4 lg:p-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl lg:text-3xl font-bold">Studio</h1>
@@ -421,33 +478,19 @@ export default function StudioPage() {
             <div className="flex items-center gap-2">
               {selectionMode ? (
                 <>
-                  <button
-                    onClick={handleSelectAll}
-                    className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded transition-colors"
-                  >
+                  <button onClick={handleSelectAll} className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded transition-colors">
                     {selectedIds.size === history.length ? 'Deselect All' : 'Select All'}
                   </button>
-                  <button
-                    onClick={handleDeleteSelected}
-                    disabled={selectedIds.size === 0}
-                    className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded bg-red-500/10 border border-red-500/30 disabled:opacity-30 transition-colors"
-                  >
+                  <button onClick={handleDeleteSelected} disabled={selectedIds.size === 0}
+                    className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded bg-red-500/10 border border-red-500/30 disabled:opacity-30 transition-colors">
                     <Trash2 className="h-3 w-3" /> Delete ({selectedIds.size})
                   </button>
-                  <button
-                    onClick={() => { setSelectionMode(false); setSelectedIds(new Set()); }}
-                    className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded transition-colors"
-                  >
-                    Cancel
-                  </button>
+                  <button onClick={() => { setSelectionMode(false); setSelectedIds(new Set()); }}
+                    className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded transition-colors">Cancel</button>
                 </>
               ) : (
-                <button
-                  onClick={() => setSelectionMode(true)}
-                  className="text-xs text-gray-500 hover:text-gray-300 px-2 py-1 rounded transition-colors"
-                >
-                  Select
-                </button>
+                <button onClick={() => setSelectionMode(true)}
+                  className="text-xs text-gray-500 hover:text-gray-300 px-2 py-1 rounded transition-colors">Select</button>
               )}
             </div>
           )}
@@ -465,8 +508,7 @@ export default function StudioPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             {history.map((gen) => (
               <GenCard
-                key={gen.id}
-                gen={gen}
+                key={gen.id} gen={gen}
                 onClick={() => setSelectedGen(gen)}
                 selected={selectedIds.has(gen.id)}
                 onToggleSelect={() => toggleSelection(gen.id)}
@@ -477,39 +519,33 @@ export default function StudioPage() {
         )}
       </div>
 
-      {/* Bottom control panel — fixed */}
+      {/* Bottom control panel */}
       <div className="border-t border-[#333] bg-[#1a1a1a] p-4">
-        {/* Reference images row */}
+        {/* Reference images */}
         {referenceImages.length > 0 && (
           <div className="flex gap-3 mb-3 overflow-x-auto pb-2">
             {referenceImages.map((img, i) => (
               <div key={i} className="relative shrink-0 w-16 h-16">
                 <img src={img} alt="" className="w-full h-full object-cover rounded-lg border border-[#333]" />
-                <button
-                  onClick={() => removeReference(i)}
-                  className="absolute -top-2 -right-2 bg-red-500 rounded-full w-5 h-5 flex items-center justify-center shadow-lg z-10"
-                >
+                <button onClick={() => removeReference(i)}
+                  className="absolute -top-2 -right-2 bg-red-500 rounded-full w-5 h-5 flex items-center justify-center shadow-lg z-10">
                   <X className="h-3 w-3 text-white" />
                 </button>
               </div>
             ))}
             {referenceImages.length < 10 && (
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="shrink-0 w-16 h-16 rounded-lg border border-dashed border-[#444] flex items-center justify-center text-gray-500 hover:text-gray-300 hover:border-[#666] transition-colors"
-              >
+              <button onClick={() => fileInputRef.current?.click()}
+                className="shrink-0 w-16 h-16 rounded-lg border border-dashed border-[#444] flex items-center justify-center text-gray-500 hover:text-gray-300 hover:border-[#666] transition-colors">
                 <ImagePlus className="h-5 w-5" />
               </button>
             )}
           </div>
         )}
 
-        {/* System prompt — collapsible, full width */}
+        {/* System prompt */}
         <div className="mb-3">
-          <button
-            onClick={() => setShowSystemPrompt(!showSystemPrompt)}
-            className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 mb-1 transition-colors"
-          >
+          <button onClick={() => setShowSystemPrompt(!showSystemPrompt)}
+            className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 mb-1 transition-colors">
             {showSystemPrompt ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
             System Prompt
           </button>
@@ -524,73 +560,111 @@ export default function StudioPage() {
           )}
         </div>
 
-        {/* Advanced params toggle */}
-        <button
-          onClick={() => setShowAdvanced(!showAdvanced)}
-          className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 mb-3 transition-colors"
-        >
+        {/* Model-specific parameters */}
+        <button onClick={() => setShowAdvanced(!showAdvanced)}
+          className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 mb-3 transition-colors">
           {showAdvanced ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
-          Advanced Parameters
+          Parameters
         </button>
 
         {showAdvanced && (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-3">
+            {/* Aspect ratio — always shown */}
             <div>
               <Label className="text-xs text-gray-500">Aspect Ratio</Label>
-              <select
-                className="w-full bg-[#222] border border-[#333] text-[#FEFEFE] text-sm h-8 rounded-md px-2 mt-1 outline-none"
-                value={aspectRatio}
-                onChange={(e) => setAspectRatio(e.target.value)}
-              >
-                {ASPECT_RATIOS.map((r) => <option key={r} value={r}>{r}</option>)}
+              <select className="w-full bg-[#222] border border-[#333] text-[#FEFEFE] text-sm h-8 rounded-md px-2 mt-1 outline-none"
+                value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)}>
+                {aspectRatios.map((r) => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
-            <div>
-              <Label className="text-xs text-gray-500">Resolution</Label>
-              <select
-                className="w-full bg-[#222] border border-[#333] text-[#FEFEFE] text-sm h-8 rounded-md px-2 mt-1 outline-none"
-                value={resolution}
-                onChange={(e) => setResolution(e.target.value)}
-              >
-                {RESOLUTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
-              </select>
-            </div>
-            <div>
-              <Label className="text-xs text-gray-500">Temperature</Label>
-              <Input
-                type="number" step="0.1" min="0" max="2"
-                className="bg-[#222] border-[#333] text-[#FEFEFE] text-sm h-8 mt-1"
-                placeholder="0.7" value={temperature}
-                onChange={(e) => setTemperature(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-gray-500">Top P</Label>
-              <Input
-                type="number" step="0.1" min="0" max="1"
-                className="bg-[#222] border-[#333] text-[#FEFEFE] text-sm h-8 mt-1"
-                placeholder="0.9" value={topP}
-                onChange={(e) => setTopP(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-gray-500">Top K</Label>
-              <Input
-                type="number" step="1" min="1"
-                className="bg-[#222] border-[#333] text-[#FEFEFE] text-sm h-8 mt-1"
-                placeholder="40" value={topK}
-                onChange={(e) => setTopK(e.target.value)}
-              />
-            </div>
+
+            {/* Image: resolution, temperature, top_p, top_k */}
+            {!isVideoModel && (
+              <>
+                <div>
+                  <Label className="text-xs text-gray-500">Resolution</Label>
+                  <select className="w-full bg-[#222] border border-[#333] text-[#FEFEFE] text-sm h-8 rounded-md px-2 mt-1 outline-none"
+                    value={resolution} onChange={(e) => setResolution(e.target.value)}>
+                    {(providerConfig?.resolutions || ['1K', '2K', '4K']).map((r) => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500">Temperature</Label>
+                  <Input type="number" step="0.1" min="0" max="2"
+                    className="bg-[#222] border-[#333] text-[#FEFEFE] text-sm h-8 mt-1"
+                    placeholder="0.7" value={temperature} onChange={(e) => setTemperature(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500">Top P</Label>
+                  <Input type="number" step="0.1" min="0" max="1"
+                    className="bg-[#222] border-[#333] text-[#FEFEFE] text-sm h-8 mt-1"
+                    placeholder="0.9" value={topP} onChange={(e) => setTopP(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500">Top K</Label>
+                  <Input type="number" step="1" min="1"
+                    className="bg-[#222] border-[#333] text-[#FEFEFE] text-sm h-8 mt-1"
+                    placeholder="40" value={topK} onChange={(e) => setTopK(e.target.value)} />
+                </div>
+              </>
+            )}
+
+            {/* Video: duration, mode, sound, resolution */}
+            {isVideoModel && (
+              <>
+                {providerConfig.supportsDuration && providerConfig.durations && (
+                  <div>
+                    <Label className="text-xs text-gray-500">Duration</Label>
+                    <select className="w-full bg-[#222] border border-[#333] text-[#FEFEFE] text-sm h-8 rounded-md px-2 mt-1 outline-none"
+                      value={duration} onChange={(e) => setDuration(e.target.value)}>
+                      {providerConfig.durations.map((d) => <option key={d} value={d}>{d}s</option>)}
+                    </select>
+                  </div>
+                )}
+                {providerConfig.supportsMode && providerConfig.modes && (
+                  <div>
+                    <Label className="text-xs text-gray-500">Mode</Label>
+                    <select className="w-full bg-[#222] border border-[#333] text-[#FEFEFE] text-sm h-8 rounded-md px-2 mt-1 outline-none"
+                      value={videoMode} onChange={(e) => setVideoMode(e.target.value)}>
+                      {providerConfig.modes.map((m) => <option key={m} value={m}>{m.charAt(0).toUpperCase() + m.slice(1)}</option>)}
+                    </select>
+                  </div>
+                )}
+                {providerConfig.supportsSound && (
+                  <div>
+                    <Label className="text-xs text-gray-500">Audio</Label>
+                    <button
+                      onClick={() => setSound(!sound)}
+                      className={`w-full h-8 mt-1 rounded-md border text-sm flex items-center justify-center gap-1.5 transition-colors ${
+                        sound
+                          ? 'bg-[#28B8F6]/10 border-[#28B8F6]/30 text-[#28B8F6]'
+                          : 'bg-[#222] border-[#333] text-gray-400'
+                      }`}
+                    >
+                      {sound ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
+                      {sound ? 'On' : 'Off'}
+                    </button>
+                  </div>
+                )}
+                {providerConfig.resolutions && (
+                  <div>
+                    <Label className="text-xs text-gray-500">Resolution</Label>
+                    <select className="w-full bg-[#222] border border-[#333] text-[#FEFEFE] text-sm h-8 rounded-md px-2 mt-1 outline-none"
+                      value={resolution} onChange={(e) => setResolution(e.target.value)}>
+                      {providerConfig.resolutions.map((r) => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Batch size — always shown */}
             <div>
               <Label className="text-xs text-gray-500">Batch Size</Label>
-              <select
-                className="w-full bg-[#222] border border-[#333] text-[#FEFEFE] text-sm h-8 rounded-md px-2 mt-1 outline-none"
-                value={batchSize}
-                onChange={(e) => setBatchSize(parseInt(e.target.value))}
-              >
+              <select className="w-full bg-[#222] border border-[#333] text-[#FEFEFE] text-sm h-8 rounded-md px-2 mt-1 outline-none"
+                value={batchSize} onChange={(e) => setBatchSize(parseInt(e.target.value))}>
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-                  <option key={n} value={n}>{n} image{n > 1 ? 's' : ''}</option>
+                  <option key={n} value={n}>{n} {isVideoModel ? 'video' : 'image'}{n > 1 ? 's' : ''}</option>
                 ))}
               </select>
             </div>
@@ -601,13 +675,10 @@ export default function StudioPage() {
         <div className="flex gap-3 items-end">
           <div className="flex-1">
             <div className="flex gap-2">
-              {/* Add reference images button */}
               <div className="relative shrink-0">
-                <button
-                  onClick={() => fileInputRef.current?.click()}
+                <button onClick={() => fileInputRef.current?.click()}
                   className="h-12 w-12 rounded-xl bg-[#222] border border-[#333] flex items-center justify-center text-gray-400 hover:text-[#28B8F6] hover:border-[#28B8F6]/30 transition-colors"
-                  title="Add reference images (max 10)"
-                >
+                  title="Add reference images (max 10)">
                   <ImagePlus className="h-5 w-5" />
                 </button>
                 {referenceImages.length > 0 && (
@@ -616,51 +687,34 @@ export default function StudioPage() {
                   </span>
                 )}
               </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={handleAddImages}
-              />
-
-              {/* Prompt input */}
+              <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleAddImages} />
               <textarea
                 className="flex-1 bg-[#222] border border-[#333] text-[#FEFEFE] rounded-xl px-4 py-3 text-sm resize-none outline-none focus:border-[#28B8F6]/50 transition-colors placeholder-gray-500"
                 rows={2}
-                placeholder="Describe what you want to generate..."
+                placeholder={isVideoModel ? 'Describe the video you want to generate...' : 'Describe what you want to generate...'}
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleGenerate();
-                  }
+                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); }
                 }}
               />
             </div>
           </div>
 
-          {/* Model selector + Generate button */}
           <div className="flex flex-col gap-2 shrink-0">
             <select
               className="bg-[#222] border border-[#333] text-[#FEFEFE] text-sm h-8 rounded-lg px-2 outline-none"
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-            >
-              {PROVIDER_IDS.map((id) => (
+              value={model} onChange={(e) => setModel(e.target.value)}>
+              {ACTIVE_PROVIDER_IDS.map((id) => (
                 <option key={id} value={id}>
                   {AI_PROVIDERS[id].icon} {AI_PROVIDERS[id].name}
                 </option>
               ))}
             </select>
-
             <Button
               onClick={handleGenerate}
               disabled={generating || !prompt.trim()}
-              className="h-12 px-6 bg-[#28B8F6] hover:bg-[#28B8F6]/80 text-[#191919] font-semibold rounded-xl"
-            >
+              className="h-12 px-6 bg-[#28B8F6] hover:bg-[#28B8F6]/80 text-[#191919] font-semibold rounded-xl">
               {generating ? (
                 <Loader2 className="animate-spin h-5 w-5" />
               ) : (
@@ -678,9 +732,8 @@ export default function StudioPage() {
         </div>
       </div>
 
-      {/* Lightbox modal */}
       {selectedGen && (
-        <ImageModal
+        <MediaModal
           gen={selectedGen}
           onClose={() => setSelectedGen(null)}
           onUseAsReference={addReferenceFromUrl}
