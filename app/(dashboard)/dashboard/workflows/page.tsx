@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import useSWR, { mutate } from 'swr';
-import { Workflow, Zap, Loader2, Play, X, Coins } from 'lucide-react';
+import { Workflow, Zap, Loader2, Play, X, Coins, PenTool, Send } from 'lucide-react';
 import { AI_PROVIDERS, PROVIDER_IDS } from '@/lib/ai/providers';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -139,10 +139,119 @@ function RunModal({ workflow, onClose }: { workflow: WorkflowData; onClose: () =
   );
 }
 
+function CustomWorkflowModal({ onClose }: { onClose: () => void }) {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [useCase, setUseCase] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleSubmit() {
+    if (!name.trim() || !description.trim()) {
+      setError('Please fill in the workflow name and description.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/workflows/custom-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, description, useCase }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Failed to submit request.');
+      } else {
+        setSuccess(true);
+      }
+    } catch {
+      setError('Something went wrong.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="bg-[#222] border border-[#333] rounded-2xl max-w-lg w-full p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold">Request a Custom Workflow</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="h-5 w-5" /></button>
+        </div>
+
+        {success ? (
+          <div className="text-center py-4">
+            <div className="text-green-400 text-sm bg-green-500/10 border border-green-500/30 rounded-lg p-4 mb-4">
+              ✅ Your request has been submitted! We will review it and get back to you within <strong>5 business days</strong>.
+            </div>
+            <Button onClick={onClose} variant="outline" className="border-[#333] text-gray-300 hover:bg-[#333]">
+              Close
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-gray-400 text-sm">
+              Describe the AI workflow you need. Our team will review your request and, if feasible,
+              integrate it into the platform. You will receive a response within <strong className="text-gray-300">5 business days</strong>.
+            </p>
+
+            <div>
+              <Label className="text-gray-300 mb-1">Workflow Name *</Label>
+              <Input
+                className="bg-[#2a2a2a] border-[#333] text-[#FEFEFE] mt-1"
+                placeholder="e.g., AI Product Photo Generator"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label className="text-gray-300 mb-1">Description *</Label>
+              <textarea
+                className="w-full bg-[#2a2a2a] border border-[#333] text-[#FEFEFE] rounded-lg p-3 text-sm min-h-[100px] focus:ring-[#28B8F6] focus:border-[#28B8F6] outline-none"
+                placeholder="Describe what this workflow should do, what inputs it needs, and what output you expect..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label className="text-gray-300 mb-1">Use Case (optional)</Label>
+              <textarea
+                className="w-full bg-[#2a2a2a] border border-[#333] text-[#FEFEFE] rounded-lg p-3 text-sm min-h-[60px] focus:ring-[#28B8F6] focus:border-[#28B8F6] outline-none"
+                placeholder="How do you plan to use this workflow? This helps us prioritize..."
+                value={useCase}
+                onChange={(e) => setUseCase(e.target.value)}
+              />
+            </div>
+
+            {error && <p className="text-red-400 text-sm">{error}</p>}
+
+            <Button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="w-full bg-[#7F6DE7] hover:bg-[#7F6DE7]/80 text-white font-semibold"
+            >
+              {loading ? (
+                <><Loader2 className="animate-spin mr-2 h-4 w-4" />Submitting...</>
+              ) : (
+                <><Send className="mr-2 h-4 w-4" />Submit Request</>
+              )}
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function WorkflowsPage() {
   const { data: workflows } = useSWR<WorkflowData[]>('/api/workflows', fetcher);
   const { data: runs } = useSWR<any[]>('/api/workflows/runs?limit=20', fetcher);
   const [selectedWorkflow, setSelectedWorkflow] = useState<WorkflowData | null>(null);
+  const [showCustomRequest, setShowCustomRequest] = useState(false);
 
   return (
     <section className="flex-1 p-4 lg:p-8">
@@ -150,14 +259,7 @@ export default function WorkflowsPage() {
 
       {/* Workflow cards */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-        {(!workflows || workflows.length === 0) ? (
-          <Card className="bg-[#222] border-[#333] col-span-full">
-            <CardContent className="p-8 text-center">
-              <Workflow className="h-12 w-12 text-gray-500 mx-auto mb-4" />
-              <p className="text-gray-400">No workflows available yet. Check back soon!</p>
-            </CardContent>
-          </Card>
-        ) : (
+        {workflows && workflows.length > 0 && (
           workflows.map((wf) => (
             <Card key={wf.id} className="bg-[#222] border-[#333] hover:border-[#28B8F6]/30 transition-all cursor-pointer" onClick={() => setSelectedWorkflow(wf)}>
               <CardHeader>
@@ -177,6 +279,29 @@ export default function WorkflowsPage() {
             </Card>
           ))
         )}
+
+        {/* Custom Workflow Request Card */}
+        <Card
+          className="bg-[#222] border-[#333] border-dashed hover:border-[#7F6DE7]/50 transition-all cursor-pointer"
+          onClick={() => setShowCustomRequest(true)}
+        >
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Custom Workflow</CardTitle>
+              <span className="text-xs px-2 py-1 rounded-full bg-[#7F6DE7]/10 text-[#7F6DE7] font-mono">
+                request
+              </span>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-400 text-sm mb-4 line-clamp-2">
+              Need a specific AI workflow? Submit a request and our team will review it within 5 business days.
+            </p>
+            <Button size="sm" className="bg-[#7F6DE7] hover:bg-[#7F6DE7]/80 text-white">
+              <PenTool className="mr-1 h-3 w-3" /> Request
+            </Button>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Run history */}
@@ -215,6 +340,7 @@ export default function WorkflowsPage() {
       </Card>
 
       {selectedWorkflow && <RunModal workflow={selectedWorkflow} onClose={() => setSelectedWorkflow(null)} />}
+      {showCustomRequest && <CustomWorkflowModal onClose={() => setShowCustomRequest(false)} />}
     </section>
   );
 }
