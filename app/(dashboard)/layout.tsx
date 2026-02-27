@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
-import { Home, LogOut, Sparkles, CreditCard, Cpu, Workflow, Menu, X } from 'lucide-react';
+import { Home, LogOut, Sparkles, CreditCard, Cpu, Workflow, Menu, X, Paintbrush } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +21,7 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 const navLinks = [
   { href: '/pricing', label: 'Pricing', icon: CreditCard },
   { href: '/dashboard', label: 'Dashboard', icon: Home },
+  { href: '/dashboard/studio', label: 'Studio', icon: Paintbrush },
   { href: '/dashboard/workflows', label: 'Workflows', icon: Workflow },
   { href: '/dashboard/models', label: 'Models', icon: Cpu },
 ];
