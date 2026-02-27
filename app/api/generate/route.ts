@@ -4,9 +4,13 @@ import { db } from '@/lib/db/drizzle';
 import { generations } from '@/lib/db/schema';
 import { getUser, getUserCreditBalance, createCreditTransaction } from '@/lib/db/queries';
 import { AI_PROVIDERS, isValidProvider } from '@/lib/ai/providers';
+import { getKieCredits, isLowCredits, sendLowCreditAlert } from '@/lib/kie/credits';
 import crypto from 'crypto';
 
 const KIE_API_URL = 'https://api.kie.ai/api/v1/jobs/createTask';
+
+// Track if we already sent an alert this deployment (avoid spam)
+let alertSentThisDeployment = false;
 
 export async function POST(request: NextRequest) {
   try {
@@ -64,6 +68,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         error: `Not enough credits. Need ${totalCost}, have ${balance}.`,
       }, { status: 402 });
+    }
+
+    // Check kie.ai credits before proceeding
+    const kieCredits = await getKieCredits();
+    if (kieCredits !== null) {
+      console.log('[GENERATE] kie.ai credits:', kieCredits);
+      if (kieCredits <= 0) {
+        return NextResponse.json({
+          error: 'Service temporarily unavailable. Please try again later.',
+        }, { status: 503 });
+      }
+      if (isLowCredits(kieCredits) && !alertSentThisDeployment) {
+        alertSentThisDeployment = true;
+        // Fire and forget — don't block the generation
+        sendLowCreditAlert(kieCredits).catch(() => {});
+      }
     }
 
     // Deduct credits upfront
