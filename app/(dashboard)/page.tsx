@@ -10,8 +10,8 @@ export default function HomePage() {
         <video src="/images/logo-animated.webm" autoPlay loop muted playsInline className="w-full h-full object-cover" />
       </div>
 
-      {/* Hero */}
-      <section className="relative py-24 overflow-hidden">
+      {/* Hero — transparent to let video background show through */}
+      <section className="relative py-24 overflow-hidden bg-transparent">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="text-center max-w-3xl mx-auto">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#28B8F6]/10 text-[#28B8F6] text-sm font-medium mb-8">
