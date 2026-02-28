@@ -9,7 +9,7 @@ export default function HomePage() {
       <section className="relative py-24 overflow-hidden">
         {/* Animated GIF background */}
         <div className="absolute inset-0">
-          <img src="/images/logo-animated.gif" alt="" className="w-full h-full object-cover opacity-10" />
+          <video src="/images/logo-animated.webm" autoPlay loop muted playsInline className="w-full h-full object-cover opacity-10" />
           <div className="absolute inset-0 bg-gradient-to-b from-[#191919] via-[#191919]/80 to-[#191919]" />
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
