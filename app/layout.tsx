@@ -7,6 +7,15 @@ import { SWRConfig } from 'swr';
 export const metadata: Metadata = {
   title: 'Fanverse — AI Workflows for Creators',
   description: 'Unleash your creativity with powerful AI workflows. Generate images, videos, and more with cutting-edge models.',
+  icons: {
+    icon: '/images/logo-header.png',
+    apple: '/images/logo-header.png',
+  },
+  openGraph: {
+    title: 'Fanverse — AI Workflows for Creators',
+    description: 'Generate stunning images and videos for your AI influencer using cutting-edge models.',
+    images: ['/images/logo-full.jpeg'],
+  },
 };
 
 export const viewport: Viewport = {

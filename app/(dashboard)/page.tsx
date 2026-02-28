@@ -7,7 +7,11 @@ export default function HomePage() {
     <main>
       {/* Hero */}
       <section className="relative py-24 overflow-hidden">
-        <div className="absolute inset-0 fan-gradient opacity-5" />
+        {/* Animated GIF background */}
+        <div className="absolute inset-0">
+          <img src="/images/logo-animated.gif" alt="" className="w-full h-full object-cover opacity-10" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#191919] via-[#191919]/80 to-[#191919]" />
+        </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="text-center max-w-3xl mx-auto">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#28B8F6]/10 text-[#28B8F6] text-sm font-medium mb-8">
@@ -103,9 +107,8 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t border-[#333] py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-[#28B8F6]" />
-            <span className="font-semibold fan-gradient-text">Fanverse</span>
+          <div className="flex items-center">
+            <img src="/images/logo-header.png" alt="Fanverse" className="h-6 object-contain" />
           </div>
           <div className="flex items-center gap-6 text-sm text-gray-500">
             <Link href="/terms" className="hover:text-gray-300">Terms</Link>
