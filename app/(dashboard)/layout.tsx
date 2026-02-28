@@ -105,9 +105,8 @@ function Header() {
     <header className="border-b border-[#333] bg-[#191919]/95 backdrop-blur-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-[#28B8F6]" />
-            <span className="text-xl font-bold fan-gradient-text">Fanverse</span>
+          <Link href="/" className="flex items-center">
+            <img src="/images/logo-header.png" alt="Fanverse" className="h-8 object-contain" />
           </Link>
           <nav className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => {
