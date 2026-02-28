@@ -15,7 +15,7 @@ export default async function PricingPage() {
   const proPrice = prices.find((p) => p.productId === proPlan?.id) || prices[0];
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 bg-[#191919] min-h-screen">
       <div className="text-center mb-16">
         <h1 className="text-4xl font-bold mb-4">
           Simple, <span className="fan-gradient-text">transparent</span> pricing

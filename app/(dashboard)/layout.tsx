@@ -106,7 +106,7 @@ function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center">
-            <img src="/images/logo-header.png" alt="Fanverse" className="h-8 object-contain" />
+            <img src="/images/logo-header.png" alt="Fanverse" className="h-14 object-contain" />
           </Link>
           <nav className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => {
@@ -159,7 +159,7 @@ function Header() {
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <section className="flex flex-col min-h-screen bg-[#191919]">
+    <section className="flex flex-col min-h-screen">
       <Header />
       {children}
     </section>
