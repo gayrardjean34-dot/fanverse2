@@ -5,13 +5,13 @@ import Link from 'next/link';
 export default function HomePage() {
   return (
     <main>
+      {/* Fixed animated background — stays in place when scrolling */}
+      <div className="fixed inset-0 -z-10">
+        <video src="/images/logo-animated.webm" autoPlay loop muted playsInline className="w-full h-full object-cover" />
+      </div>
+
       {/* Hero */}
       <section className="relative py-24 overflow-hidden">
-        {/* Animated GIF background */}
-        <div className="absolute inset-0">
-          <video src="/images/logo-animated.webm" autoPlay loop muted playsInline className="w-full h-full object-cover opacity-10" />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#191919] via-[#191919]/80 to-[#191919]" />
-        </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="text-center max-w-3xl mx-auto">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#28B8F6]/10 text-[#28B8F6] text-sm font-medium mb-8">
@@ -42,7 +42,7 @@ export default function HomePage() {
       </section>
 
       {/* Features */}
-      <section className="py-20 border-t border-[#333]">
+      <section className="py-20 border-t border-[#333] bg-[#191919] relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-center mb-16">
             Everything you need to <span className="fan-gradient-text">create</span>
@@ -87,7 +87,7 @@ export default function HomePage() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 border-t border-[#333]">
+      <section className="py-20 border-t border-[#333] bg-[#191919] relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
             Ready to create something <span className="fan-gradient-text">amazing</span>?
@@ -105,7 +105,7 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-[#333] py-8">
+      <footer className="border-t border-[#333] py-8 bg-[#191919] relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center">
             <img src="/images/logo-header.png" alt="Fanverse" className="h-6 object-contain" />
