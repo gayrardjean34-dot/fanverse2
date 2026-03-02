@@ -15,7 +15,12 @@ export default async function PricingPage() {
   const proPrice = prices.find((p) => p.productId === proPlan?.id) || prices[0];
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 bg-[#191919] min-h-screen">
+    <main className="relative min-h-screen">
+      {/* Animated background */}
+      <div className="fixed inset-0 -z-10">
+        <video src="/images/logo-animated.webm" autoPlay loop muted playsInline className="w-full h-full object-cover" />
+      </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <div className="text-center mb-16">
         <h1 className="text-4xl font-bold mb-4">
           Simple, <span className="fan-gradient-text">transparent</span> pricing
@@ -28,7 +33,7 @@ export default async function PricingPage() {
       {/* Subscriptions */}
       <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto mb-20">
         {/* Starter Plan */}
-        <div className="rounded-2xl bg-[#222] border border-[#333] hover:border-[#7F6DE7]/50 transition-all p-8">
+        <div className="rounded-2xl bg-black/40 backdrop-blur-sm border border-white/10 hover:border-[#7F6DE7]/50 transition-all p-8">
           <h2 className="text-2xl font-bold mb-2">Fanverse Starter</h2>
           <p className="text-gray-400 text-sm mb-6">500 credits/month + access to 1 workflow of your choice</p>
           <p className="text-5xl font-bold mb-1">
@@ -57,7 +62,7 @@ export default async function PricingPage() {
         </div>
 
         {/* Pro Plan */}
-        <div className="rounded-2xl bg-[#222] border border-[#28B8F6]/30 p-8 fan-glow">
+        <div className="rounded-2xl bg-black/40 backdrop-blur-sm border border-[#28B8F6]/30 p-8 fan-glow">
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="h-5 w-5 text-[#28B8F6]" />
             <span className="text-sm font-medium text-[#28B8F6]">Most Popular</span>
@@ -97,7 +102,7 @@ export default async function PricingPage() {
       </div>
       <div className="grid sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
         {CREDIT_PACKS.map((pack) => (
-          <div key={pack.id} className="rounded-xl bg-[#222] border border-[#333] hover:border-[#7F6DE7]/50 transition-all p-6">
+          <div key={pack.id} className="rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 hover:border-[#7F6DE7]/50 transition-all p-6">
             <h3 className="text-lg font-semibold mb-1">{pack.name}</h3>
             <p className="text-3xl font-bold mb-1">
               {pack.credits} <span className="text-sm font-normal text-gray-400">credits</span>
@@ -114,6 +119,7 @@ export default async function PricingPage() {
             </form>
           </div>
         ))}
+      </div>
       </div>
     </main>
   );
