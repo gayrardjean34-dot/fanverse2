@@ -39,7 +39,12 @@ export async function POST(request: NextRequest) {
     const batchId = crypto.randomUUID();
 
     // Deduct credits
-    await createCreditTransaction(user.id, -totalCost, 'spend', `Automation: ${quantity} selfie(s)`);
+    await createCreditTransaction({
+      userId: user.id,
+      amount: -totalCost,
+      type: 'spend',
+      reason: `Automation: ${quantity} selfie(s)`,
+    });
 
     // Create generation record
     const [gen] = await db.insert(generations).values({
