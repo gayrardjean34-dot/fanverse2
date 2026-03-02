@@ -22,7 +22,7 @@ const navLinks = [
   { href: '/pricing', label: 'Pricing', icon: CreditCard },
   { href: '/dashboard', label: 'Dashboard', icon: Home },
   { href: '/dashboard/studio', label: 'Studio', icon: Paintbrush },
-  { href: '/dashboard/workflows', label: 'Workflows', icon: Workflow },
+  { href: '/dashboard/workflows', label: 'Automations', icon: Workflow },
   { href: '/dashboard/models', label: 'Models', icon: Cpu },
 ];
 

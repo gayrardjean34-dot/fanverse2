@@ -177,7 +177,7 @@ function CustomWorkflowModal({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="bg-[#222] border border-[#333] rounded-2xl max-w-lg w-full p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold">Request a Custom Workflow</h2>
+          <h2 className="text-xl font-bold">Request a Custom Automation</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="h-5 w-5" /></button>
         </div>
 
@@ -193,12 +193,12 @@ function CustomWorkflowModal({ onClose }: { onClose: () => void }) {
         ) : (
           <div className="space-y-4">
             <p className="text-gray-400 text-sm">
-              Describe the AI workflow you need. Our team will review your request and, if feasible,
+              Describe the AI automation you need. Our team will review your request and, if feasible,
               integrate it into the platform. You will receive a response within <strong className="text-gray-300">5 business days</strong>.
             </p>
 
             <div>
-              <Label className="text-gray-300 mb-1">Workflow Name *</Label>
+              <Label className="text-gray-300 mb-1">Automation Name *</Label>
               <Input
                 className="bg-[#2a2a2a] border-[#333] text-[#FEFEFE] mt-1"
                 placeholder="e.g., AI Product Photo Generator"
@@ -255,7 +255,7 @@ export default function WorkflowsPage() {
 
   return (
     <section className="flex-1 p-4 lg:p-8">
-      <h1 className="text-2xl lg:text-3xl font-bold mb-8">AI Workflows</h1>
+      <h1 className="text-2xl lg:text-3xl font-bold mb-8">AI Automations</h1>
 
       {/* Workflow cards */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
@@ -287,7 +287,7 @@ export default function WorkflowsPage() {
         >
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Custom Workflow</CardTitle>
+              <CardTitle className="text-lg">Custom Automation</CardTitle>
               <span className="text-xs px-2 py-1 rounded-full bg-[#7F6DE7]/10 text-[#7F6DE7] font-mono">
                 request
               </span>
@@ -295,7 +295,7 @@ export default function WorkflowsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-gray-400 text-sm mb-4 line-clamp-2">
-              Need a specific AI workflow? Submit a request and our team will review it within 5 business days.
+              Need a specific AI automation? Submit a request and our team will review it within 5 business days.
             </p>
             <Button size="sm" className="bg-[#7F6DE7] hover:bg-[#7F6DE7]/80 text-white">
               <PenTool className="mr-1 h-3 w-3" /> Request

@@ -42,7 +42,7 @@ export default function HomePage() {
       </section>
 
       {/* Features */}
-      <section className="py-20 border-t border-white/10 bg-transparent relative">
+      <section className="py-20 bg-transparent relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-center mb-16">
             Everything you need to <span className="fan-gradient-text">create</span>
@@ -87,7 +87,7 @@ export default function HomePage() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 border-t border-white/10 bg-transparent relative">
+      <section className="py-20 bg-transparent relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
             Ready to create something <span className="fan-gradient-text">amazing</span>?
@@ -105,7 +105,7 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/10 py-8 bg-transparent relative">
+      <footer className="py-8 bg-transparent relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <img src="/images/dzs.jpeg" alt="Fanverse" className="h-8 w-8 rounded-lg object-contain" />
