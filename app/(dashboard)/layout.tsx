@@ -102,11 +102,12 @@ function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <header className="border-b border-[#333] bg-[#191919]/95 backdrop-blur-md sticky top-0 z-50">
+    <header className="border-b border-white/10 bg-black/30 backdrop-blur-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center">
-            <img src="/images/logo-header.png" alt="Fanverse" className="h-14 object-contain" />
+          <Link href="/" className="flex items-center gap-3">
+            <img src="/images/dzs.jpeg" alt="Fanverse" className="h-10 w-10 rounded-lg object-contain" />
+            <span className="text-xl font-bold text-[#FEFEFE] tracking-tight">Fanverse</span>
           </Link>
           <nav className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => {
@@ -140,7 +141,7 @@ function Header() {
         </div>
       </div>
       {mobileOpen && (
-        <nav className="md:hidden border-t border-[#333] px-4 py-3 flex flex-col gap-1">
+        <nav className="md:hidden border-t border-white/10 bg-black/30 backdrop-blur-md px-4 py-3 flex flex-col gap-1">
           {navLinks.map((link) => (
             <Link
               key={link.href}
