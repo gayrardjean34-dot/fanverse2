@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       sql`SELECT COUNT(*) as count FROM contact_messages WHERE user_id = ${user.id} AND created_at > ${oneWeekAgo}`
     );
 
-    const count = Number(recentCount.rows?.[0]?.count ?? 0);
+    const count = Number((recentCount as any)[0]?.count ?? 0);
     if (count >= 2) {
       return NextResponse.json({
         error: 'You can only send 2 messages per week. Please try again later or join our Discord.',
