@@ -268,6 +268,17 @@ export type NewActivityLog = typeof activityLogs.$inferInsert;
 export type Invitation = typeof invitations.$inferSelect;
 export type NewInvitation = typeof invitations.$inferInsert;
 export type CreditTransaction = typeof creditLedger.$inferSelect;
+export const contactMessages = pgTable('contact_messages', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => users.id),
+  email: varchar('email', { length: 255 }).notNull(),
+  subject: text('subject'),
+  message: text('message').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
 export type Workflow = typeof workflows.$inferSelect;
 export type WorkflowRun = typeof workflowRuns.$inferSelect;
 export type TeamDataWithMembers = Team & {

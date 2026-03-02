@@ -16,7 +16,21 @@ import {
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
-const CREDIT_PER_SELFIE = 25;
+// Automation definitions
+const AUTOMATIONS = {
+  'infinite-selfies': {
+    id: 'infinite-selfies',
+    name: 'Infinite Selfies',
+    icon: '📸',
+    description: 'Generate unlimited selfies from a reference photo',
+    creditPerImage: 25,
+    requiresRefImage: true,
+    maxQuantity: 50,
+  },
+} as const;
+
+type AutomationId = keyof typeof AUTOMATIONS;
+const AUTOMATION_IDS = Object.keys(AUTOMATIONS) as AutomationId[];
 
 type Generation = {
   id: number;
@@ -83,7 +97,6 @@ function AutomationMediaModal({
           </div>
         )}
 
-        {/* Download all button */}
         {gen.status === 'completed' && images.length > 1 && (
           <div className="flex gap-2">
             {images.map((url, i) => (
@@ -168,21 +181,22 @@ function AutomationGenCard({
 
 // ── Main Automations Studio ──
 export default function AutomationsStudio() {
+  const [selectedAutomation, setSelectedAutomation] = useState<AutomationId>('infinite-selfies');
   const [quantity, setQuantity] = useState(1);
   const [referenceImage, setReferenceImage] = useState<{ file: File; preview: string } | null>(null);
   const [generating, setGenerating] = useState(false);
   const [selectedGen, setSelectedGen] = useState<Generation | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const creditCost = quantity * CREDIT_PER_SELFIE;
+  const automation = AUTOMATIONS[selectedAutomation];
+  const creditCost = quantity * automation.creditPerImage;
 
   const { data: history, mutate: mutateHistory } = useSWR<Generation[]>(
-    '/api/generate/history?limit=100&model=automation-selfie',
+    '/api/generate/history?limit=100',
     fetcher,
     { refreshInterval: 3000 }
   );
 
-  // Filter to only automation generations
   const automationHistory = history?.filter((g) => g.model === 'automation-selfie') || [];
 
   const hasPending = automationHistory.some((g) => g.status === 'pending' || g.status === 'processing');
@@ -214,6 +228,7 @@ export default function AutomationsStudio() {
       const formData = new FormData();
       formData.append('Ref_1', referenceImage.file);
       formData.append('quantity', quantity.toString());
+      formData.append('automation', selectedAutomation);
 
       const res = await fetch('/api/automations/generate', {
         method: 'POST',
@@ -308,33 +323,46 @@ export default function AutomationsStudio() {
               <input
                 type="number"
                 min="1"
-                max="50"
+                max={automation.maxQuantity}
                 value={quantity}
-                onChange={(e) => setQuantity(Math.max(1, Math.min(50, parseInt(e.target.value) || 1)))}
+                onChange={(e) => setQuantity(Math.max(1, Math.min(automation.maxQuantity, parseInt(e.target.value) || 1)))}
                 className="w-full bg-[#222] border border-[#333] text-[#FEFEFE] rounded-xl px-4 py-3 text-sm outline-none focus:border-[#7F6DE7]/50 transition-colors h-12"
               />
             </div>
           </div>
 
-          {/* Generate button */}
-          <Button
-            onClick={handleGenerate}
-            disabled={generating || !referenceImage}
-            className="h-12 px-6 bg-[#7F6DE7] hover:bg-[#7F6DE7]/80 text-white font-semibold rounded-xl disabled:opacity-50"
-          >
-            {generating ? (
-              <Loader2 className="animate-spin h-5 w-5" />
-            ) : (
-              <span className="flex items-center gap-2">
-                <Send className="h-4 w-4" />
-                Generate
-                <span className="flex items-center gap-1 text-xs opacity-80">
-                  <Coins className="h-3 w-3" />
-                  {creditCost}
+          {/* Automation selector + Generate */}
+          <div className="flex flex-col gap-2 shrink-0">
+            <select
+              className="bg-[#222] border border-[#333] text-[#FEFEFE] text-sm h-8 rounded-lg px-2 outline-none"
+              value={selectedAutomation}
+              onChange={(e) => setSelectedAutomation(e.target.value as AutomationId)}
+            >
+              {AUTOMATION_IDS.map((id) => (
+                <option key={id} value={id}>
+                  {AUTOMATIONS[id].icon} {AUTOMATIONS[id].name}
+                </option>
+              ))}
+            </select>
+            <Button
+              onClick={handleGenerate}
+              disabled={generating || !referenceImage}
+              className="h-12 px-6 bg-[#7F6DE7] hover:bg-[#7F6DE7]/80 text-white font-semibold rounded-xl disabled:opacity-50"
+            >
+              {generating ? (
+                <Loader2 className="animate-spin h-5 w-5" />
+              ) : (
+                <span className="flex items-center gap-2">
+                  <Send className="h-4 w-4" />
+                  Generate
+                  <span className="flex items-center gap-1 text-xs opacity-80">
+                    <Coins className="h-3 w-3" />
+                    {creditCost}
+                  </span>
                 </span>
-              </span>
-            )}
-          </Button>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
 

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
-import { Home, LogOut, Sparkles, CreditCard, Cpu, Workflow, Menu, X, Paintbrush, Coins } from 'lucide-react';
+import { Home, LogOut, Sparkles, CreditCard, Cpu, Workflow, Menu, X, Paintbrush, Coins, MessageCircle } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +24,7 @@ const navLinks = [
   { href: '/dashboard/studio', label: 'Studio', icon: Paintbrush },
   { href: '/dashboard/workflows', label: 'Automations', icon: Workflow },
   { href: '/dashboard/models', label: 'Models', icon: Cpu },
+  { href: '/contact', label: 'Contact', icon: MessageCircle },
 ];
 
 function UserMenu() {
