@@ -5,7 +5,9 @@ import { generations } from '@/lib/db/schema';
 import crypto from 'crypto';
 
 const N8N_WEBHOOK_URL = process.env.N8N_SELFIE_WEBHOOK_URL || 'https://n8n.fanverse.lol/webhook/d069e291-644a-4377-996c-b8ef1f17109b';
+const N8N_FACESWAP_WEBHOOK_URL = process.env.N8N_FACESWAP_WEBHOOK_URL || 'https://n8n.fanverse.lol/webhook/ezfaceswapfhdkjsuhjkdfshkfjhdsdsfdfsf';
 const CREDIT_COST_PER_SELFIE = 25;
+const CREDIT_COST_PER_SWAP = 25;
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,6 +17,13 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData();
+    const automation = (formData.get('automation') as string) || 'infinite-selfies';
+
+    if (automation === 'face-swap') {
+      return handleFaceSwap(formData, user);
+    }
+
+    // ── Infinite Selfies (existing logic) ──
     const imageFile = formData.get('Ref_1') as File | null;
     const quantity = parseInt(formData.get('quantity') as string) || 1;
 
@@ -28,7 +37,6 @@ export async function POST(request: NextRequest) {
 
     const totalCost = quantity * CREDIT_COST_PER_SELFIE;
 
-    // Check credits
     const balance = await getUserCreditBalance(user.id);
     if (balance < totalCost) {
       return NextResponse.json({
@@ -38,7 +46,6 @@ export async function POST(request: NextRequest) {
 
     const batchId = crypto.randomUUID();
 
-    // Deduct credits
     await createCreditTransaction({
       userId: user.id,
       amount: -totalCost,
@@ -46,7 +53,6 @@ export async function POST(request: NextRequest) {
       reason: `Automation: ${quantity} selfie(s)`,
     });
 
-    // Create generation record
     const [gen] = await db.insert(generations).values({
       userId: user.id,
       batchId,
@@ -60,7 +66,6 @@ export async function POST(request: NextRequest) {
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     }).returning();
 
-    // Send to n8n webhook as multipart form-data
     const webhookFormData = new FormData();
     webhookFormData.append('Ref_1', imageFile);
     webhookFormData.append('quantity', quantity.toString());
@@ -68,7 +73,6 @@ export async function POST(request: NextRequest) {
     webhookFormData.append('generationId', gen.id.toString());
     webhookFormData.append('callbackUrl', `${process.env.NEXT_PUBLIC_APP_URL || 'https://fanverse.lol'}/api/automations/callback`);
 
-    // Fire and forget to n8n
     fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
       body: webhookFormData,
@@ -87,4 +91,77 @@ export async function POST(request: NextRequest) {
     console.error('Automation generate error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+}
+
+// ── Face Swap handler ──
+async function handleFaceSwap(formData: FormData, user: { id: number }) {
+  const refFile = formData.get('ref') as File | null;
+  const swapFiles = formData.getAll('swaps') as File[];
+
+  if (!refFile) {
+    return NextResponse.json({ error: 'Reference image is required.' }, { status: 400 });
+  }
+
+  if (swapFiles.length === 0) {
+    return NextResponse.json({ error: 'At least one swap image is required.' }, { status: 400 });
+  }
+
+  if (swapFiles.length > 15) {
+    return NextResponse.json({ error: 'Maximum 15 swap images allowed.' }, { status: 400 });
+  }
+
+  const totalCost = swapFiles.length * CREDIT_COST_PER_SWAP;
+
+  const balance = await getUserCreditBalance(user.id);
+  if (balance < totalCost) {
+    return NextResponse.json({
+      error: `Not enough credits. Need ${totalCost}, have ${balance}.`,
+    }, { status: 402 });
+  }
+
+  const batchId = crypto.randomUUID();
+
+  await createCreditTransaction({
+    userId: user.id,
+    amount: -totalCost,
+    type: 'spend',
+    reason: `Automation: face swap on ${swapFiles.length} image(s)`,
+  });
+
+  const [gen] = await db.insert(generations).values({
+    userId: user.id,
+    batchId,
+    model: 'automation-faceswap',
+    prompt: `Face swap on ${swapFiles.length} image(s) from reference`,
+    aspectRatio: '1:1',
+    resolution: '1K',
+    referenceImages: [],
+    status: 'processing',
+    creditCost: totalCost,
+    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+  }).returning();
+
+  const webhookFormData = new FormData();
+  webhookFormData.append('ref', refFile);
+  for (const swapFile of swapFiles) {
+    webhookFormData.append('swaps', swapFile);
+  }
+  webhookFormData.append('batchId', batchId);
+  webhookFormData.append('generationId', gen.id.toString());
+  webhookFormData.append('callbackUrl', `${process.env.NEXT_PUBLIC_APP_URL || 'https://fanverse.lol'}/api/automations/callback`);
+
+  fetch(N8N_FACESWAP_WEBHOOK_URL, {
+    method: 'POST',
+    body: webhookFormData,
+  }).catch((err) => {
+    console.error('Failed to call n8n faceswap webhook:', err);
+  });
+
+  return NextResponse.json({
+    success: true,
+    batchId,
+    generationId: gen.id,
+    creditCost: totalCost,
+    quantity: swapFiles.length,
+  });
 }

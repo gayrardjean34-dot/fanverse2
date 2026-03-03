@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
         await db.insert(generations).values({
           userId: original.userId,
           batchId: original.batchId,
-          model: 'automation-selfie',
+          model: original.model,
           prompt: original.prompt,
           aspectRatio: '1:1',
           resolution: '1K',
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
             await db.insert(generations).values({
               userId: original.userId,
               batchId: original.batchId,
-              model: 'automation-selfie',
+              model: original.model,
               prompt: original.prompt,
               aspectRatio: '1:1',
               resolution: '1K',

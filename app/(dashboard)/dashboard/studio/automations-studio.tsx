@@ -12,6 +12,7 @@ import {
   X,
   Coins,
   AlertTriangle,
+  Upload,
 } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -26,6 +27,17 @@ const AUTOMATIONS = {
     creditPerImage: 25,
     requiresRefImage: true,
     maxQuantity: 50,
+    modelFilter: 'automation-selfie',
+  },
+  'face-swap': {
+    id: 'face-swap',
+    name: 'EZ Face Swap',
+    icon: '🔄',
+    description: 'Swap faces from a reference photo onto up to 15 target images',
+    creditPerImage: 25,
+    requiresRefImage: true,
+    maxQuantity: 15,
+    modelFilter: 'automation-faceswap',
   },
 } as const;
 
@@ -65,7 +77,7 @@ function AutomationMediaModal({
       <div className="bg-[#222] border border-[#333] rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500 font-mono">automation-selfie</span>
+            <span className="text-xs text-gray-500 font-mono">{gen.model}</span>
             <span className="text-xs text-gray-500">{gen.creditCost} cr</span>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="h-5 w-5" /></button>
@@ -75,7 +87,7 @@ function AutomationMediaModal({
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
             {images.map((url, i) => (
               <div key={i} className="relative group">
-                <img src={url} alt={`Selfie ${i + 1}`} className="w-full rounded-xl object-cover aspect-square bg-black" />
+                <img src={url} alt={`Result ${i + 1}`} className="w-full rounded-xl object-cover aspect-square bg-black" />
                 <a
                   href={getDownloadUrl(url)}
                   className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#28B8F6] text-[#191919] text-xs font-medium hover:bg-[#28B8F6]/80"
@@ -184,12 +196,17 @@ export default function AutomationsStudio() {
   const [selectedAutomation, setSelectedAutomation] = useState<AutomationId>('infinite-selfies');
   const [quantity, setQuantity] = useState(1);
   const [referenceImage, setReferenceImage] = useState<{ file: File; preview: string } | null>(null);
+  const [swapImages, setSwapImages] = useState<{ file: File; preview: string }[]>([]);
   const [generating, setGenerating] = useState(false);
   const [selectedGen, setSelectedGen] = useState<Generation | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const refInputRef = useRef<HTMLInputElement>(null);
+  const swapsInputRef = useRef<HTMLInputElement>(null);
 
   const automation = AUTOMATIONS[selectedAutomation];
-  const creditCost = quantity * automation.creditPerImage;
+  const isFaceSwap = selectedAutomation === 'face-swap';
+  const creditCost = isFaceSwap
+    ? swapImages.length * automation.creditPerImage
+    : quantity * automation.creditPerImage;
 
   const { data: history, mutate: mutateHistory } = useSWR<Generation[]>(
     '/api/generate/history?limit=100',
@@ -197,7 +214,7 @@ export default function AutomationsStudio() {
     { refreshInterval: 3000 }
   );
 
-  const automationHistory = history?.filter((g) => g.model === 'automation-selfie') || [];
+  const automationHistory = history?.filter((g) => g.model === automation.modelFilter) || [];
 
   const hasPending = automationHistory.some((g) => g.status === 'pending' || g.status === 'processing');
   useEffect(() => {
@@ -206,11 +223,23 @@ export default function AutomationsStudio() {
     return () => clearInterval(interval);
   }, [hasPending, mutateHistory]);
 
-  const handleImageSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  // Reset swap images when switching automation
+  useEffect(() => {
+    setSwapImages((prev) => {
+      prev.forEach((img) => URL.revokeObjectURL(img.preview));
+      return [];
+    });
+    setQuantity(1);
+  }, [selectedAutomation]);
+
+  const handleRefSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const preview = URL.createObjectURL(file);
-    setReferenceImage({ file, preview });
+    setReferenceImage((prev) => {
+      if (prev) URL.revokeObjectURL(prev.preview);
+      return { file, preview };
+    });
     e.target.value = '';
   }, []);
 
@@ -221,14 +250,46 @@ export default function AutomationsStudio() {
     }
   }, [referenceImage]);
 
+  const handleSwapsSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    setSwapImages((prev) => {
+      const remaining = 15 - prev.length;
+      const toAdd = files.slice(0, remaining).map((file) => ({
+        file,
+        preview: URL.createObjectURL(file),
+      }));
+      return [...prev, ...toAdd];
+    });
+    e.target.value = '';
+  }, []);
+
+  const removeSwapImage = useCallback((index: number) => {
+    setSwapImages((prev) => {
+      const removed = prev[index];
+      if (removed) URL.revokeObjectURL(removed.preview);
+      return prev.filter((_, i) => i !== index);
+    });
+  }, []);
+
   async function handleGenerate() {
     if (!referenceImage || generating) return;
+    if (isFaceSwap && swapImages.length === 0) return;
+
     setGenerating(true);
     try {
       const formData = new FormData();
-      formData.append('Ref_1', referenceImage.file);
-      formData.append('quantity', quantity.toString());
       formData.append('automation', selectedAutomation);
+
+      if (isFaceSwap) {
+        formData.append('ref', referenceImage.file);
+        for (const img of swapImages) {
+          formData.append('swaps', img.file);
+        }
+      } else {
+        formData.append('Ref_1', referenceImage.file);
+        formData.append('quantity', quantity.toString());
+      }
 
       const res = await fetch('/api/automations/generate', {
         method: 'POST',
@@ -248,6 +309,10 @@ export default function AutomationsStudio() {
     }
   }
 
+  const canGenerate = isFaceSwap
+    ? referenceImage && swapImages.length > 0
+    : referenceImage;
+
   return (
     <>
       {/* Gallery area */}
@@ -261,7 +326,11 @@ export default function AutomationsStudio() {
             <div className="text-center">
               <ImagePlus className="h-16 w-16 mx-auto mb-4 opacity-30" />
               <p>Your automation results will appear here</p>
-              <p className="text-sm mt-1">Upload a reference image and set quantity below</p>
+              <p className="text-sm mt-1">
+                {isFaceSwap
+                  ? 'Upload a reference image and swap images below'
+                  : 'Upload a reference image and set quantity below'}
+              </p>
             </div>
           </div>
         ) : (
@@ -279,56 +348,105 @@ export default function AutomationsStudio() {
 
       {/* Bottom control panel */}
       <div className="border-t border-[#333] bg-[#1a1a1a] p-4">
-        {/* Reference image */}
-        {referenceImage && (
-          <div className="flex gap-3 mb-3">
+        {/* Image previews */}
+        <div className="flex gap-3 mb-3 flex-wrap">
+          {/* Reference image preview */}
+          {referenceImage && (
             <div className="relative shrink-0 w-20 h-20">
-              <img src={referenceImage.preview} alt="Reference" className="w-full h-full object-cover rounded-lg border border-[#333]" />
+              <img src={referenceImage.preview} alt="Reference" className="w-full h-full object-cover rounded-lg border border-[#7F6DE7]/50" />
               <button onClick={removeReference}
                 className="absolute -top-2 -right-2 bg-red-500 rounded-full w-5 h-5 flex items-center justify-center shadow-lg z-10">
                 <X className="h-3 w-3 text-white" />
               </button>
-              <span className="absolute bottom-1 left-1 text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded backdrop-blur-sm">
-                Ref 1
+              <span className="absolute bottom-1 left-1 text-[10px] bg-[#7F6DE7]/80 text-white px-1.5 py-0.5 rounded backdrop-blur-sm">
+                Ref
               </span>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Swap images previews (face-swap only) */}
+          {isFaceSwap && swapImages.map((img, i) => (
+            <div key={i} className="relative shrink-0 w-20 h-20">
+              <img src={img.preview} alt={`Swap ${i + 1}`} className="w-full h-full object-cover rounded-lg border border-[#333]" />
+              <button onClick={() => removeSwapImage(i)}
+                className="absolute -top-2 -right-2 bg-red-500 rounded-full w-5 h-5 flex items-center justify-center shadow-lg z-10">
+                <X className="h-3 w-3 text-white" />
+              </button>
+              <span className="absolute bottom-1 left-1 text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded backdrop-blur-sm">
+                Swap {i + 1}
+              </span>
+            </div>
+          ))}
+        </div>
 
         {/* Controls row */}
         <div className="flex gap-3 items-end">
           <div className="flex-1 flex gap-3 items-end">
-            {/* Upload button */}
+            {/* Reference image upload */}
             <div className="relative shrink-0">
-              <button onClick={() => fileInputRef.current?.click()}
+              <button onClick={() => refInputRef.current?.click()}
                 className={`h-12 w-12 rounded-xl border flex items-center justify-center transition-colors ${
                   referenceImage
                     ? 'bg-[#7F6DE7]/10 border-[#7F6DE7]/30 text-[#7F6DE7]'
                     : 'bg-[#222] border-[#333] text-gray-400 hover:text-[#7F6DE7] hover:border-[#7F6DE7]/30'
                 }`}
-                title="Upload reference image">
+                title="Upload reference picture">
                 <ImagePlus className="h-5 w-5" />
               </button>
               {referenceImage && (
                 <span className="absolute -top-1 -right-1 bg-[#7F6DE7] text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                  1
+                  ✓
                 </span>
               )}
+              <span className="text-[10px] text-gray-500 text-center block mt-1">Ref</span>
             </div>
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
+            <input ref={refInputRef} type="file" accept="image/*" className="hidden" onChange={handleRefSelect} />
 
-            {/* Quantity */}
-            <div className="w-32">
-              <Label className="text-xs text-gray-500 mb-1 block">How many images</Label>
-              <input
-                type="number"
-                min="1"
-                max={automation.maxQuantity}
-                value={quantity}
-                onChange={(e) => setQuantity(Math.max(1, Math.min(automation.maxQuantity, parseInt(e.target.value) || 1)))}
-                className="w-full bg-[#222] border border-[#333] text-[#FEFEFE] rounded-xl px-4 py-3 text-sm outline-none focus:border-[#7F6DE7]/50 transition-colors h-12"
-              />
-            </div>
+            {/* Swap images upload (face-swap only) */}
+            {isFaceSwap && (
+              <>
+                <div className="relative shrink-0">
+                  <button onClick={() => swapsInputRef.current?.click()}
+                    className={`h-12 w-12 rounded-xl border flex items-center justify-center transition-colors ${
+                      swapImages.length > 0
+                        ? 'bg-[#28B8F6]/10 border-[#28B8F6]/30 text-[#28B8F6]'
+                        : 'bg-[#222] border-[#333] text-gray-400 hover:text-[#28B8F6] hover:border-[#28B8F6]/30'
+                    }`}
+                    title="Upload swap images (up to 15)">
+                    <Upload className="h-5 w-5" />
+                  </button>
+                  {swapImages.length > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-[#28B8F6] text-[#191919] text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                      {swapImages.length}
+                    </span>
+                  )}
+                  <span className="text-[10px] text-gray-500 text-center block mt-1">Swaps</span>
+                </div>
+                <input ref={swapsInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleSwapsSelect} />
+              </>
+            )}
+
+            {/* Quantity (infinite-selfies only) */}
+            {!isFaceSwap && (
+              <div className="w-32">
+                <Label className="text-xs text-gray-500 mb-1 block">How many images</Label>
+                <input
+                  type="number"
+                  min="1"
+                  max={automation.maxQuantity}
+                  value={quantity}
+                  onChange={(e) => setQuantity(Math.max(1, Math.min(automation.maxQuantity, parseInt(e.target.value) || 1)))}
+                  className="w-full bg-[#222] border border-[#333] text-[#FEFEFE] rounded-xl px-4 py-3 text-sm outline-none focus:border-[#7F6DE7]/50 transition-colors h-12"
+                />
+              </div>
+            )}
+
+            {/* Swap count info (face-swap) */}
+            {isFaceSwap && (
+              <div className="text-xs text-gray-500 self-center">
+                {swapImages.length}/15 images
+              </div>
+            )}
           </div>
 
           {/* Automation selector + Generate */}
@@ -346,7 +464,7 @@ export default function AutomationsStudio() {
             </select>
             <Button
               onClick={handleGenerate}
-              disabled={generating || !referenceImage}
+              disabled={generating || !canGenerate}
               className="h-12 px-6 bg-[#7F6DE7] hover:bg-[#7F6DE7]/80 text-white font-semibold rounded-xl disabled:opacity-50"
             >
               {generating ? (
