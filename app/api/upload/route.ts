@@ -1,38 +1,33 @@
-import { put } from '@vercel/blob';
+import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUser } from '@/lib/db/queries';
 
 export async function POST(request: NextRequest) {
+  const body = (await request.json()) as HandleUploadBody;
+
   try {
     const user = await getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const formData = await request.formData();
-    const files = formData.getAll('files') as File[];
+    const jsonResponse = await handleUpload({
+      body,
+      request,
+      onBeforeGenerateToken: async (pathname) => {
+        return {
+          allowedContentTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
+          maximumSizeInBytes: 10 * 1024 * 1024,
+          tokenPayload: JSON.stringify({ userId: user.id }),
+        };
+      },
+      onUploadCompleted: async ({ blob }) => {
+        console.log('Upload completed:', blob.url);
+      },
+    });
 
-    if (files.length === 0) {
-      return NextResponse.json({ error: 'No files provided' }, { status: 400 });
-    }
-
-    if (files.length > 16) {
-      return NextResponse.json({ error: 'Maximum 16 files allowed' }, { status: 400 });
-    }
-
-    const urls: string[] = [];
-
-    for (const file of files) {
-      const blob = await put(file.name, file, {
-        access: 'public',
-        contentType: file.type,
-      });
-      urls.push(blob.url);
-    }
-
-    return NextResponse.json({ urls });
+    return NextResponse.json(jsonResponse);
   } catch (error: any) {
-    console.error('Upload error:', error);
-    return NextResponse.json({ error: error.message || 'Upload failed' }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 400 });
   }
 }
