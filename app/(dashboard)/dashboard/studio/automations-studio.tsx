@@ -4,7 +4,6 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import useSWR, { mutate } from 'swr';
-import { upload } from '@vercel/blob/client';
 import {
   Loader2,
   Send,
@@ -279,26 +278,23 @@ export default function AutomationsStudio() {
     if (isFaceSwap && swapImages.length === 0) return;
 
     try {
-      // Step 1: Upload images to Vercel Blob
+      // Step 1: Upload images to Vercel Blob one by one (4.5MB limit per request)
       setUploading(true);
 
-      const refBlob = await upload(referenceImage.file.name, referenceImage.file, {
-        access: 'public',
-        handleUploadUrl: '/api/upload',
-      });
-      const refUrl = refBlob.url;
+      async function uploadOne(file: File): Promise<string> {
+        const fd = new FormData();
+        fd.append('files', file);
+        const res = await fetch('/api/upload', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Upload failed');
+        return data.urls[0];
+      }
+
+      const refUrl = await uploadOne(referenceImage.file);
 
       let swapUrls: string[] = [];
       if (isFaceSwap) {
-        const swapBlobs = await Promise.all(
-          swapImages.map((img) =>
-            upload(img.file.name, img.file, {
-              access: 'public',
-              handleUploadUrl: '/api/upload',
-            })
-          )
-        );
-        swapUrls = swapBlobs.map((b) => b.url);
+        swapUrls = await Promise.all(swapImages.map((img) => uploadOne(img.file)));
       }
 
       setUploading(false);
