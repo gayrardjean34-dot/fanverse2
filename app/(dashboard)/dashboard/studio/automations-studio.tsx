@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import useSWR, { mutate } from 'swr';
+import { upload } from '@vercel/blob/client';
 import {
   Loader2,
   Send,
@@ -12,7 +13,7 @@ import {
   X,
   Coins,
   AlertTriangle,
-  Upload,
+  Upload as UploadIcon,
 } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -197,6 +198,7 @@ export default function AutomationsStudio() {
   const [quantity, setQuantity] = useState(1);
   const [referenceImage, setReferenceImage] = useState<{ file: File; preview: string } | null>(null);
   const [swapImages, setSwapImages] = useState<{ file: File; preview: string }[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [selectedGen, setSelectedGen] = useState<Generation | null>(null);
   const refInputRef = useRef<HTMLInputElement>(null);
@@ -273,27 +275,45 @@ export default function AutomationsStudio() {
   }, []);
 
   async function handleGenerate() {
-    if (!referenceImage || generating) return;
+    if (!referenceImage || generating || uploading) return;
     if (isFaceSwap && swapImages.length === 0) return;
 
-    setGenerating(true);
     try {
-      const formData = new FormData();
-      formData.append('automation', selectedAutomation);
+      // Step 1: Upload images to Vercel Blob
+      setUploading(true);
 
+      const refBlob = await upload(referenceImage.file.name, referenceImage.file, {
+        access: 'public',
+        handleUploadUrl: '/api/upload',
+      });
+      const refUrl = refBlob.url;
+
+      let swapUrls: string[] = [];
       if (isFaceSwap) {
-        formData.append('ref', referenceImage.file);
-        for (const img of swapImages) {
-          formData.append('swaps', img.file);
-        }
-      } else {
-        formData.append('Ref_1', referenceImage.file);
-        formData.append('quantity', quantity.toString());
+        const swapBlobs = await Promise.all(
+          swapImages.map((img) =>
+            upload(img.file.name, img.file, {
+              access: 'public',
+              handleUploadUrl: '/api/upload',
+            })
+          )
+        );
+        swapUrls = swapBlobs.map((b) => b.url);
       }
+
+      setUploading(false);
+
+      // Step 2: Send URLs to API
+      setGenerating(true);
+
+      const body = isFaceSwap
+        ? { automation: selectedAutomation, refUrl, swapUrls }
+        : { automation: selectedAutomation, refUrl, quantity };
 
       const res = await fetch('/api/automations/generate', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -305,6 +325,7 @@ export default function AutomationsStudio() {
     } catch {
       alert('Something went wrong');
     } finally {
+      setUploading(false);
       setGenerating(false);
     }
   }
@@ -413,7 +434,7 @@ export default function AutomationsStudio() {
                         : 'bg-[#222] border-[#333] text-gray-400 hover:text-[#28B8F6] hover:border-[#28B8F6]/30'
                     }`}
                     title="Upload swap images (up to 15)">
-                    <Upload className="h-5 w-5" />
+                    <UploadIcon className="h-5 w-5" />
                   </button>
                   {swapImages.length > 0 && (
                     <span className="absolute -top-1 -right-1 bg-[#28B8F6] text-[#191919] text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
@@ -464,11 +485,19 @@ export default function AutomationsStudio() {
             </select>
             <Button
               onClick={handleGenerate}
-              disabled={generating || !canGenerate}
+              disabled={generating || uploading || !canGenerate}
               className="h-12 px-6 bg-[#7F6DE7] hover:bg-[#7F6DE7]/80 text-white font-semibold rounded-xl disabled:opacity-50"
             >
-              {generating ? (
-                <Loader2 className="animate-spin h-5 w-5" />
+              {uploading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="animate-spin h-5 w-5" />
+                  Uploading...
+                </span>
+              ) : generating ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="animate-spin h-5 w-5" />
+                  Generating...
+                </span>
               ) : (
                 <span className="flex items-center gap-2">
                   <Send className="h-4 w-4" />

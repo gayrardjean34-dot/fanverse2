@@ -16,19 +16,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const formData = await request.formData();
-    const automation = (formData.get('automation') as string) || 'infinite-selfies';
+    const body = await request.json();
+    const automation = body.automation || 'infinite-selfies';
 
     if (automation === 'face-swap') {
-      return handleFaceSwap(formData, user);
+      return handleFaceSwap(body, user);
     }
 
-    // ── Infinite Selfies (existing logic) ──
-    const imageFile = formData.get('Ref_1') as File | null;
-    const quantity = parseInt(formData.get('quantity') as string) || 1;
+    // ── Infinite Selfies ──
+    const refUrl = body.refUrl as string | undefined;
+    const quantity = parseInt(body.quantity) || 1;
 
-    if (!imageFile) {
-      return NextResponse.json({ error: 'Reference image (Ref_1) is required.' }, { status: 400 });
+    if (!refUrl) {
+      return NextResponse.json({ error: 'Reference image URL is required.' }, { status: 400 });
     }
 
     if (quantity < 1 || quantity > 50) {
@@ -66,16 +66,18 @@ export async function POST(request: NextRequest) {
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     }).returning();
 
-    const webhookFormData = new FormData();
-    webhookFormData.append('Ref_1', imageFile);
-    webhookFormData.append('quantity', quantity.toString());
-    webhookFormData.append('batchId', batchId);
-    webhookFormData.append('generationId', gen.id.toString());
-    webhookFormData.append('callbackUrl', `${process.env.NEXT_PUBLIC_APP_URL || 'https://fanverse.lol'}/api/automations/callback`);
+    const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://fanverse.lol'}/api/automations/callback`;
 
     fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
-      body: webhookFormData,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        refUrl,
+        quantity,
+        batchId,
+        generationId: gen.id.toString(),
+        callbackUrl,
+      }),
     }).catch((err) => {
       console.error('Failed to call n8n webhook:', err);
     });
@@ -94,23 +96,23 @@ export async function POST(request: NextRequest) {
 }
 
 // ── Face Swap handler ──
-async function handleFaceSwap(formData: FormData, user: { id: number }) {
-  const refFile = formData.get('ref') as File | null;
-  const swapFiles = formData.getAll('swaps') as File[];
+async function handleFaceSwap(body: any, user: { id: number }) {
+  const refUrl = body.refUrl as string | undefined;
+  const swapUrls = body.swapUrls as string[] | undefined;
 
-  if (!refFile) {
+  if (!refUrl) {
     return NextResponse.json({ error: 'Reference image is required.' }, { status: 400 });
   }
 
-  if (swapFiles.length === 0) {
+  if (!swapUrls || swapUrls.length === 0) {
     return NextResponse.json({ error: 'At least one swap image is required.' }, { status: 400 });
   }
 
-  if (swapFiles.length > 15) {
+  if (swapUrls.length > 15) {
     return NextResponse.json({ error: 'Maximum 15 swap images allowed.' }, { status: 400 });
   }
 
-  const totalCost = swapFiles.length * CREDIT_COST_PER_SWAP;
+  const totalCost = swapUrls.length * CREDIT_COST_PER_SWAP;
 
   const balance = await getUserCreditBalance(user.id);
   if (balance < totalCost) {
@@ -125,14 +127,14 @@ async function handleFaceSwap(formData: FormData, user: { id: number }) {
     userId: user.id,
     amount: -totalCost,
     type: 'spend',
-    reason: `Automation: face swap on ${swapFiles.length} image(s)`,
+    reason: `Automation: face swap on ${swapUrls.length} image(s)`,
   });
 
   const [gen] = await db.insert(generations).values({
     userId: user.id,
     batchId,
     model: 'automation-faceswap',
-    prompt: `Face swap on ${swapFiles.length} image(s) from reference`,
+    prompt: `Face swap on ${swapUrls.length} image(s) from reference`,
     aspectRatio: '1:1',
     resolution: '1K',
     referenceImages: [],
@@ -141,18 +143,18 @@ async function handleFaceSwap(formData: FormData, user: { id: number }) {
     expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
   }).returning();
 
-  const webhookFormData = new FormData();
-  webhookFormData.append('ref', refFile);
-  for (const swapFile of swapFiles) {
-    webhookFormData.append('swaps', swapFile);
-  }
-  webhookFormData.append('batchId', batchId);
-  webhookFormData.append('generationId', gen.id.toString());
-  webhookFormData.append('callbackUrl', `${process.env.NEXT_PUBLIC_APP_URL || 'https://fanverse.lol'}/api/automations/callback`);
+  const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://fanverse.lol'}/api/automations/callback`;
 
   fetch(N8N_FACESWAP_WEBHOOK_URL, {
     method: 'POST',
-    body: webhookFormData,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ref: refUrl,
+      swaps: swapUrls,
+      batchId,
+      generationId: gen.id.toString(),
+      callbackUrl,
+    }),
   }).catch((err) => {
     console.error('Failed to call n8n faceswap webhook:', err);
   });
@@ -162,6 +164,6 @@ async function handleFaceSwap(formData: FormData, user: { id: number }) {
     batchId,
     generationId: gen.id,
     creditCost: totalCost,
-    quantity: swapFiles.length,
+    quantity: swapUrls.length,
   });
 }
