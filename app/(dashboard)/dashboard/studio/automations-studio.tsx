@@ -4,7 +4,6 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import useSWR, { mutate } from 'swr';
-import { upload } from '@vercel/blob/client';
 import {
   Loader2,
   Send,
@@ -17,6 +16,43 @@ import {
 } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+// Compress image client-side to stay under Vercel's 4.5MB limit
+function compressImage(file: File, maxWidth = 2048, quality = 0.85): Promise<File> {
+  return new Promise((resolve, reject) => {
+    // If already small enough, skip compression
+    if (file.size < 2 * 1024 * 1024) {
+      resolve(file);
+      return;
+    }
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement('canvas');
+      let { width, height } = img;
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width;
+        width = maxWidth;
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { reject(new Error('Canvas not supported')); return; }
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) { reject(new Error('Compression failed')); return; }
+          resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+        },
+        'image/jpeg',
+        quality
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Failed to load image')); };
+    img.src = url;
+  });
+}
 
 // Automation definitions
 const AUTOMATIONS = {
@@ -279,15 +315,17 @@ export default function AutomationsStudio() {
     if (isFaceSwap && swapImages.length === 0) return;
 
     try {
-      // Step 1: Upload images to Vercel Blob (client-side, no server size limit)
+      // Step 1: Compress & upload images one by one to Vercel Blob
       setUploading(true);
 
       async function uploadOne(file: File): Promise<string> {
-        const blob = await upload(file.name, file, {
-          access: 'public',
-          handleUploadUrl: '/api/upload',
-        });
-        return blob.url;
+        const compressed = await compressImage(file);
+        const fd = new FormData();
+        fd.append('file', compressed);
+        const res = await fetch('/api/upload', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Upload failed');
+        return data.url;
       }
 
       const refUrl = await uploadOne(referenceImage.file);
