@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db/drizzle';
 import { generations } from '@/lib/db/schema';
+import { createCreditTransaction } from '@/lib/db/queries';
 
 // n8n calls this endpoint once per generated image (loop)
 // Expected payloads:
@@ -20,9 +21,19 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       if (generationId) {
+        const [gen] = await db.select().from(generations).where(eq(generations.id, generationId));
         await db.update(generations)
           .set({ status: 'failed', error, updatedAt: new Date() })
           .where(eq(generations.id, generationId));
+        // Refund credits on error
+        if (gen && gen.creditCost > 0 && gen.status !== 'failed') {
+          await createCreditTransaction({
+            userId: gen.userId,
+            amount: gen.creditCost,
+            type: 'refund',
+            reason: `Refund: generation #${generationId} failed — ${error}`,
+          });
+        }
       }
       return NextResponse.json({ success: true, status: 'failed' });
     }
