@@ -257,7 +257,17 @@ export default function AutomationsStudio() {
   const hasPending = automationHistory.some((g) => g.status === 'pending' || g.status === 'processing');
   useEffect(() => {
     if (!hasPending) return;
-    const interval = setInterval(() => { mutateHistory(); }, 3000);
+    let cleanupCalled = false;
+    const interval = setInterval(async () => {
+      // Every 30s, call cleanup to timeout stuck generations and refund
+      if (!cleanupCalled) {
+        cleanupCalled = true;
+        try { await fetch('/api/automations/cleanup', { method: 'POST' }); } catch {}
+      }
+      mutateHistory();
+    }, 3000);
+    // Also call cleanup once immediately
+    fetch('/api/automations/cleanup', { method: 'POST' }).catch(() => {});
     return () => clearInterval(interval);
   }, [hasPending, mutateHistory]);
 
