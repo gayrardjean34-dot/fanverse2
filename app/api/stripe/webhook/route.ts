@@ -15,12 +15,13 @@ const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 // Credit pack mappings (priceId -> credits)
 const CREDIT_PACK_MAP: Record<string, { credits: number; name: string }> = {
-  [process.env.STRIPE_PRICE_CREDITS_S || 'price_credits_s']: { credits: 500, name: 'Pack S' },
+  [process.env.STRIPE_PRICE_CREDITS_S || 'price_credits_s']: { credits: 600, name: 'Pack S' },
   [process.env.STRIPE_PRICE_CREDITS_M || 'price_credits_m']: { credits: 2000, name: 'Pack M' },
   [process.env.STRIPE_PRICE_CREDITS_L || 'price_credits_l']: { credits: 5000, name: 'Pack L' },
 };
 
-const MONTHLY_CREDITS_GRANT = 1000; // Credits given per subscription period
+const MONTHLY_CREDITS_STARTER = 600;
+const MONTHLY_CREDITS_PRO = 1000;
 
 export async function POST(request: NextRequest) {
   const payload = await request.text();
@@ -58,6 +59,10 @@ export async function POST(request: NextRequest) {
           const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer.id;
           const team = await getTeamByStripeCustomerId(customerId);
           if (team) {
+            // Determine credit grant based on plan
+            const planName = (team.planName || '').toLowerCase();
+            const creditGrant = planName.includes('starter') ? MONTHLY_CREDITS_STARTER : MONTHLY_CREDITS_PRO;
+
             // Find a team member to credit
             const members = await db
               .select()
@@ -68,8 +73,8 @@ export async function POST(request: NextRequest) {
               await createCreditTransaction({
                 userId: member.userId,
                 type: 'grant',
-                amount: MONTHLY_CREDITS_GRANT,
-                reason: `Monthly subscription credit grant`,
+                amount: creditGrant,
+                reason: `Monthly subscription credit grant (${planName.includes('starter') ? 'Starter' : 'Pro'})`,
                 stripePaymentIntentId: (invoice as any).payment_intent as string || undefined,
               });
             }

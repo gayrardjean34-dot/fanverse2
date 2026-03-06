@@ -1,9 +1,9 @@
 export const CREDIT_PACKS = {
   small: {
     name: 'Pack S',
-    credits: 500,
+    credits: 600,
     priceEnvKey: 'STRIPE_PRICE_CREDITS_S',
-    description: '500 credits',
+    description: '600 credits',
   },
   medium: {
     name: 'Pack M',

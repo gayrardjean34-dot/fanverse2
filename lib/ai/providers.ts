@@ -83,6 +83,17 @@ export const AI_PROVIDERS: Record<string, ModelConfig> = {
       return sound ? 220 : 110;
     },
   },
+  'nano-banana-2': {
+    name: 'Nano Banana 2',
+    envKey: 'KIE_API_KEY',
+    description: 'Next-gen image model with image input support and Google search.',
+    icon: '🍌',
+    type: 'image',
+    apiModel: 'nano-banana-2',
+    supportsElements: true,
+    resolutions: ['1K', '2K', '4K'],
+    getCreditCost: ({ resolution }) => resolution === '4K' ? 30 : 22,
+  },
   'seedream': {
     name: 'Seedream',
     envKey: 'KIE_API_KEY',

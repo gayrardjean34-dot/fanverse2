@@ -35,7 +35,7 @@ export default async function PricingPage() {
         {/* Starter Plan */}
         <div className="rounded-2xl bg-black/40 backdrop-blur-sm border border-white/10 hover:border-[#7F6DE7]/50 transition-all p-8">
           <h2 className="text-2xl font-bold mb-2">Fanverse Starter</h2>
-          <p className="text-gray-400 text-sm mb-6">500 credits/month + access to 1 workflow of your choice</p>
+          <p className="text-gray-400 text-sm mb-6">600 credits/month + access to 2 automations</p>
           <p className="text-5xl font-bold mb-1">
             $9.99
             <span className="text-lg font-normal text-gray-400"> /month</span>
@@ -43,8 +43,8 @@ export default async function PricingPage() {
           <p className="text-sm text-gray-500 mb-8">14-day free trial included</p>
           <ul className="space-y-3 mb-8">
             {[
-              '500 credits per month',
-              'Access to 1 AI workflow of your choice',
+              '600 credits per month',
+              'Access to 2 automations',
               'All 4 AI models',
               'Priority processing',
               'Email support',
