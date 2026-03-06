@@ -6,10 +6,17 @@ import { SubmitButton } from './submit-button';
 export const revalidate = 3600;
 
 export default async function PricingPage() {
-  const [prices, products] = await Promise.all([
-    getStripePrices(),
-    getStripeProducts(),
-  ]);
+  let prices: Awaited<ReturnType<typeof getStripePrices>> = [];
+  let products: Awaited<ReturnType<typeof getStripeProducts>> = [];
+
+  try {
+    [prices, products] = await Promise.all([
+      getStripePrices(),
+      getStripeProducts(),
+    ]);
+  } catch (error) {
+    console.error('[PRICING] Failed to fetch Stripe data:', error);
+  }
 
   const proPlan = products.find((p) => p.name === 'Fanverse Pro') || products[0];
   const proPrice = prices.find((p) => p.productId === proPlan?.id) || prices[0];
