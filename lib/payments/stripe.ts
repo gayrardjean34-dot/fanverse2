@@ -16,7 +16,7 @@ export const CREDIT_PACKS = [
   {
     id: 'S',
     name: 'Starter Pack',
-    credits: 500,
+    credits: 600,
     priceEnv: 'STRIPE_PRICE_CREDITS_S',
     price: 4.99,
   },

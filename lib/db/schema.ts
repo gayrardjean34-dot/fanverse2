@@ -19,6 +19,8 @@ export const users = pgTable('users', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
   deletedAt: timestamp('deleted_at'),
+  unlockedAutomations: json('unlocked_automations').$type<string[]>().default([]),
+  freeUnlockUsed: boolean('free_unlock_used').notNull().default(false),
 });
 
 export const teams = pgTable('teams', {

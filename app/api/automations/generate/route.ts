@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUser, getUserCreditBalance, createCreditTransaction } from '@/lib/db/queries';
+import { getUser, getUserCreditBalance, createCreditTransaction, getUserWithTeam, getTeamForUser } from '@/lib/db/queries';
 import { db } from '@/lib/db/drizzle';
-import { generations } from '@/lib/db/schema';
+import { generations, teams } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
 
 const N8N_WEBHOOK_URL = process.env.N8N_SELFIE_WEBHOOK_URL || 'https://n8n.fanverse.lol/webhook/d069e291-644a-4377-996c-b8ef1f17109b';
@@ -18,6 +19,15 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const automation = body.automation || 'infinite-selfies';
+
+    // Check automation access
+    const hasAccess = await checkAutomationAccess(user, automation);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: 'You don\'t have access to this automation. Unlock it or upgrade your plan.' },
+        { status: 403 }
+      );
+    }
 
     if (automation === 'face-swap') {
       return handleFaceSwap(body, user);
@@ -93,6 +103,31 @@ export async function POST(request: NextRequest) {
     console.error('Automation generate error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+}
+
+// ── Access check ──
+async function checkAutomationAccess(user: any, automationId: string): Promise<boolean> {
+  // Check if user has unlocked this automation (free unlock)
+  const unlockedAutomations = (user.unlockedAutomations as string[]) || [];
+  if (unlockedAutomations.includes(automationId)) {
+    return true;
+  }
+
+  // Check subscription plan
+  const team = await getTeamForUser();
+  if (team) {
+    const planName = (team.planName || '').toLowerCase();
+    const isActive = team.subscriptionStatus === 'active' || team.subscriptionStatus === 'trialing';
+
+    if (isActive) {
+      // Pro plan: access to all automations
+      if (planName.includes('pro')) return true;
+      // Starter plan: access to 2 automations
+      if (planName.includes('starter')) return true;
+    }
+  }
+
+  return false;
 }
 
 // ── Face Swap handler ──

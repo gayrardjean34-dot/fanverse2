@@ -124,7 +124,15 @@ export async function POST(request: NextRequest) {
     function buildInputPayload() {
       const input: Record<string, any> = {};
 
-      if (providerConfig.type === 'image') {
+      if (model === 'nano-banana-2') {
+        // Nano Banana 2 — uses image_input instead of reference_images
+        input.prompt = systemPrompt ? `${systemPrompt}\n\n${prompt}` : prompt;
+        input.aspect_ratio = aspectRatio || 'auto';
+        input.resolution = resolution;
+        input.output_format = 'jpg';
+        input.google_search = false;
+        if (referenceImages.length > 0) input.image_input = referenceImages;
+      } else if (providerConfig.type === 'image') {
         // Image models (nano-banana-pro, seedream)
         input.prompt = systemPrompt ? `${systemPrompt}\n\n${prompt}` : prompt;
         input.aspect_ratio = aspectRatio;

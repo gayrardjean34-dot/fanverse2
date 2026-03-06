@@ -13,9 +13,16 @@ import {
   Coins,
   AlertTriangle,
   Upload as UploadIcon,
+  Lock,
 } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+type UserData = {
+  id: number;
+  unlockedAutomations?: string[];
+  freeUnlockUsed?: boolean;
+};
 
 // Compress image client-side to stay under Vercel's 4.5MB limit
 function compressImage(file: File, maxWidth = 2048, quality = 0.85): Promise<File> {
@@ -237,8 +244,37 @@ export default function AutomationsStudio() {
   const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [selectedGen, setSelectedGen] = useState<Generation | null>(null);
+  const [unlocking, setUnlocking] = useState(false);
   const refInputRef = useRef<HTMLInputElement>(null);
   const swapsInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: userData, mutate: mutateUser } = useSWR<UserData>('/api/user', fetcher);
+  const unlockedAutomations = userData?.unlockedAutomations || [];
+  const freeUnlockUsed = userData?.freeUnlockUsed ?? true; // default true to hide button until loaded
+
+  const isAutomationUnlocked = (id: string) => unlockedAutomations.includes(id);
+
+  async function handleFreeUnlock(automationId: string) {
+    if (unlocking) return;
+    setUnlocking(true);
+    try {
+      const res = await fetch('/api/automations/unlock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ automationId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to unlock');
+      } else {
+        mutateUser();
+      }
+    } catch {
+      alert('Something went wrong');
+    } finally {
+      setUnlocking(false);
+    }
+  }
 
   const automation = AUTOMATIONS[selectedAutomation];
   const isFaceSwap = selectedAutomation === 'face-swap';
@@ -374,9 +410,10 @@ export default function AutomationsStudio() {
     }
   }
 
-  const canGenerate = isFaceSwap
+  const isLocked = !isAutomationUnlocked(selectedAutomation);
+  const canGenerate = !isLocked && (isFaceSwap
     ? referenceImage && swapImages.length > 0
-    : referenceImage;
+    : referenceImage);
 
   return (
     <>
@@ -410,6 +447,32 @@ export default function AutomationsStudio() {
           </div>
         )}
       </div>
+
+      {/* Unlock prompt for locked automations (free accounts) */}
+      {!isAutomationUnlocked(selectedAutomation) && !freeUnlockUsed && (
+        <div className="border-t border-[#7F6DE7]/30 bg-[#7F6DE7]/5 p-6 text-center">
+          <div className="text-4xl mb-3">🔒</div>
+          <h3 className="text-lg font-semibold text-[#FEFEFE] mb-2">
+            Unlock {automation.name}
+          </h3>
+          <p className="text-gray-400 text-sm mb-4">
+            You get <span className="text-[#28B8F6] font-medium">1 free automation unlock</span> with your account. Choose wisely!
+          </p>
+          <Button
+            onClick={() => handleFreeUnlock(selectedAutomation)}
+            disabled={unlocking}
+            className="bg-[#7F6DE7] hover:bg-[#7F6DE7]/80 text-white font-semibold rounded-xl px-8"
+          >
+            {unlocking ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="animate-spin h-4 w-4" /> Unlocking...
+              </span>
+            ) : (
+              `🔓 Unlock ${automation.name} for free`
+            )}
+          </Button>
+        </div>
+      )}
 
       {/* Bottom control panel */}
       <div className="border-t border-[#333] bg-[#1a1a1a] p-4">
@@ -523,7 +586,7 @@ export default function AutomationsStudio() {
             >
               {AUTOMATION_IDS.map((id) => (
                 <option key={id} value={id}>
-                  {AUTOMATIONS[id].icon} {AUTOMATIONS[id].name}
+                  {isAutomationUnlocked(id) ? AUTOMATIONS[id].icon : '🔒'} {AUTOMATIONS[id].name}
                 </option>
               ))}
             </select>
