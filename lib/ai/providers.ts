@@ -27,7 +27,10 @@ export const AI_PROVIDERS: Record<string, ModelConfig> = {
     type: 'image',
     apiModel: 'nano-banana-pro',
     resolutions: ['1K', '2K', '4K'],
-    getCreditCost: ({ resolution }) => resolution === '4K' ? 25 : 20,
+    getCreditCost: ({ resolution }) => {
+      if (resolution === '4K') return 24;
+      return 18; // 1K & 2K same price
+    },
   },
   'grok-imagine': {
     name: 'Grok Imagine',
@@ -37,11 +40,17 @@ export const AI_PROVIDERS: Record<string, ModelConfig> = {
     type: 'video',
     apiModel: 'grok-imagine/text-to-video',
     supportsDuration: true,
-    durations: ['6', '10'],
+    durations: ['6', '10', '15'],
     defaultDuration: '6',
     modes: ['normal', 'fast'],
     resolutions: ['480p', '720p'],
-    getCreditCost: ({ duration }) => duration === '10' ? 30 : 20,
+    getCreditCost: ({ duration, resolution }) => {
+      const d = parseInt(duration || '6');
+      const is720 = resolution === '720p';
+      if (d >= 15) return is720 ? 40 : 30;
+      if (d >= 10) return is720 ? 30 : 20;
+      return is720 ? 20 : 10; // 6s
+    },
   },
   'kling-3.0': {
     name: 'Kling 3.0',
@@ -58,12 +67,13 @@ export const AI_PROVIDERS: Record<string, ModelConfig> = {
     defaultDuration: '5',
     modes: ['standard', 'pro'],
     resolutions: ['720p', '1080p'],
-    getCreditCost: ({ duration, mode, sound }) => {
+    getCreditCost: ({ duration, resolution, sound }) => {
       const d = parseInt(duration || '5');
-      if (mode === 'pro') {
-        return sound ? d * 80 : d * 54;
+      const is1080 = resolution === '1080p';
+      if (is1080) {
+        return sound ? d * 40 : d * 27;
       }
-      return sound ? d * 60 : d * 40;
+      return sound ? d * 30 : d * 20; // 720p
     },
   },
   'kling-2.6': {
@@ -79,8 +89,8 @@ export const AI_PROVIDERS: Record<string, ModelConfig> = {
     defaultDuration: '5',
     getCreditCost: ({ duration, sound }) => {
       const d = parseInt(duration || '5');
-      if (d === 10) return sound ? 440 : 220;
-      return sound ? 220 : 110;
+      if (d === 10) return sound ? 220 : 110;
+      return sound ? 110 : 55; // 5s
     },
   },
   'nano-banana-2': {
@@ -92,7 +102,11 @@ export const AI_PROVIDERS: Record<string, ModelConfig> = {
     apiModel: 'nano-banana-2',
     supportsElements: true,
     resolutions: ['1K', '2K', '4K'],
-    getCreditCost: ({ resolution }) => resolution === '4K' ? 30 : 22,
+    getCreditCost: ({ resolution }) => {
+      if (resolution === '4K') return 18;
+      if (resolution === '2K') return 12;
+      return 8; // 1K
+    },
   },
   'seedream': {
     name: 'Seedream',

@@ -20,8 +20,8 @@ const CREDIT_PACK_MAP: Record<string, { credits: number; name: string }> = {
   [process.env.STRIPE_PRICE_CREDITS_L || 'price_credits_l']: { credits: 5000, name: 'Pack L' },
 };
 
-const MONTHLY_CREDITS_STARTER = 600;
-const MONTHLY_CREDITS_PRO = 1000;
+const MONTHLY_CREDITS_STARTER = 1000;
+const MONTHLY_CREDITS_PRO = 2000;
 
 export async function POST(request: NextRequest) {
   const payload = await request.text();

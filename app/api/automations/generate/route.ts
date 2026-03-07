@@ -7,8 +7,8 @@ import crypto from 'crypto';
 
 const N8N_WEBHOOK_URL = process.env.N8N_SELFIE_WEBHOOK_URL || 'https://n8n.fanverse.lol/webhook/d069e291-644a-4377-996c-b8ef1f17109b';
 const N8N_FACESWAP_WEBHOOK_URL = process.env.N8N_FACESWAP_WEBHOOK_URL || 'https://n8n.fanverse.lol/webhook/ezfaceswapfhdkjsuhjkdfshkfjhdsdsfdfsf';
-const CREDIT_COST_PER_SELFIE = 25;
-const CREDIT_COST_PER_SWAP = 25;
+const CREDIT_COST_PER_SELFIE = 22;
+const CREDIT_COST_PER_SWAP = 22;
 
 export async function POST(request: NextRequest) {
   try {
