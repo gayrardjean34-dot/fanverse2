@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { desc, eq, gt, and } from 'drizzle-orm';
+import { desc, eq, gt, and, ne, or } from 'drizzle-orm';
 import { db } from '@/lib/db/drizzle';
 import { generations } from '@/lib/db/schema';
 import { getUser } from '@/lib/db/queries';
@@ -13,16 +13,36 @@ export async function GET(request: NextRequest) {
 
     const limit = parseInt(request.nextUrl.searchParams.get('limit') || '50');
     const offset = parseInt(request.nextUrl.searchParams.get('offset') || '0');
+    const excludeAutomations = request.nextUrl.searchParams.get('excludeAutomations') === 'true';
+    const includeAutomationsOnly = request.nextUrl.searchParams.get('automationsOnly') === 'true';
+
+    let whereConditions = [
+      eq(generations.userId, user.id),
+      gt(generations.expiresAt, new Date())
+    ];
+
+    // Filter automation models
+    if (excludeAutomations) {
+      whereConditions.push(
+        and(
+          // Exclude automation models
+          ne(generations.model, 'automation-selfie'),
+          ne(generations.model, 'automation-faceswap')
+        )
+      );
+    } else if (includeAutomationsOnly) {
+      whereConditions.push(
+        or(
+          eq(generations.model, 'automation-selfie'),
+          eq(generations.model, 'automation-faceswap')
+        )
+      );
+    }
 
     const results = await db
       .select()
       .from(generations)
-      .where(
-        and(
-          eq(generations.userId, user.id),
-          gt(generations.expiresAt, new Date())
-        )
-      )
+      .where(and(...whereConditions))
       .orderBy(desc(generations.createdAt))
       .limit(limit)
       .offset(offset);
