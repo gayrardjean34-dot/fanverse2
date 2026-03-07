@@ -118,9 +118,11 @@ function getAutomationName(model: string): string {
 function AutomationMediaModal({
   gen,
   onClose,
+  onDelete,
 }: {
   gen: Generation;
   onClose: () => void;
+  onDelete: (id: number) => void;
 }) {
   const cleanifyFailed = gen.resultData?.cleanifyFailed === true;
 
@@ -168,6 +170,17 @@ function AutomationMediaModal({
             >
               <Download className="h-4 w-4" /> Download
             </a>
+            <button
+              onClick={() => {
+                if (confirm('Delete this image?')) {
+                  onDelete(gen.id);
+                  onClose();
+                }
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-medium hover:bg-red-500/20 transition-colors"
+            >
+              <X className="h-4 w-4" /> Delete
+            </button>
           </div>
         )}
       </div>
@@ -527,7 +540,9 @@ export default function AutomationsStudio() {
               ) : (
                 <>
                   <button onClick={() => setSelectionMode(true)}
-                    className="text-xs text-gray-500 hover:text-gray-300 px-2 py-1 rounded transition-colors">Select</button>
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-blue-400 hover:text-blue-300 bg-blue-500/10 border border-blue-500/30 rounded-lg transition-colors">
+                    <CheckSquare className="h-3 w-3" /> Select
+                  </button>
                   {automationHistory.some((g) => g.status === 'failed') && (
                     <button
                       onClick={handleDeleteFailed}
@@ -739,6 +754,18 @@ export default function AutomationsStudio() {
         <AutomationMediaModal
           gen={selectedGen}
           onClose={() => setSelectedGen(null)}
+          onDelete={async (id: number) => {
+            try {
+              await fetch('/api/generate/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: [id] }),
+              });
+              mutateHistory();
+            } catch {
+              alert('Failed to delete image.');
+            }
+          }}
         />
       )}
     </>
