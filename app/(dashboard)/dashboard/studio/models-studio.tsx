@@ -378,7 +378,7 @@ export default function ModelsStudio() {
   }, [model]);
 
   const { data: history, mutate: mutateHistory } = useSWR<Generation[]>(
-    '/api/generate/history?limit=100',
+    '/api/generate/history?limit=100&excludeAutomations=true',
     fetcher,
     { refreshInterval: 3000 }
   );

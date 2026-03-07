@@ -101,9 +101,15 @@ type Generation = {
   createdAt: string;
 };
 
-// ── Download helper ──
+// ── Helper functions ──
 function getDownloadUrl(url: string): string {
   return `/api/generate/download?url=${encodeURIComponent(url)}`;
+}
+
+function getAutomationName(model: string): string {
+  if (model === 'automation-selfie') return 'Infinite Selfies';
+  if (model === 'automation-faceswap') return 'EZ Face Swap';
+  return 'Unknown Automation';
 }
 
 // ── Image Lightbox (matching models-studio style) ──
@@ -189,6 +195,7 @@ function AutomationGenCard({
           : 'border-[#333] bg-[#222] hover:border-[#7F6DE7]/50'
       }`}
       onClick={onClick}
+      title={getAutomationName(gen.model)} // Tooltip with automation name
     >
       {isPending && (
         <div className="aspect-square flex items-center justify-center bg-[#1a1a1a]">
@@ -288,12 +295,13 @@ export default function AutomationsStudio() {
     : quantity * automation.creditPerImage;
 
   const { data: history, mutate: mutateHistory } = useSWR<Generation[]>(
-    '/api/generate/history?limit=100',
+    '/api/generate/history?limit=100&automationsOnly=true',
     fetcher,
     { refreshInterval: 3000 }
   );
 
-  const automationHistory = history?.filter((g) => g.model === automation.modelFilter) || [];
+  // Show ALL automation history (not filtered by current automation selection)
+  const automationHistory = history || [];
 
   const hasPending = automationHistory.some((g) => g.status === 'pending' || g.status === 'processing');
   useEffect(() => {
@@ -359,6 +367,27 @@ export default function AutomationsStudio() {
     });
   }, []);
 
+  const handleDeleteFailed = useCallback(async () => {
+    const failedIds = automationHistory.filter((g) => g.status === 'failed').map((g) => g.id);
+    if (failedIds.length === 0) {
+      alert('No failed generations to delete.');
+      return;
+    }
+
+    if (!confirm(`Delete ${failedIds.length} failed generation(s)?`)) return;
+
+    try {
+      await fetch('/api/generate/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: failedIds }),
+      });
+      mutateHistory();
+    } catch {
+      alert('Failed to delete generations.');
+    }
+  }, [automationHistory, mutateHistory]);
+
   async function handleGenerate() {
     if (!referenceImage || generating || uploading) return;
     if (isFaceSwap && swapImages.length === 0) return;
@@ -422,6 +451,14 @@ export default function AutomationsStudio() {
       <div className="flex-1 overflow-y-auto p-4 lg:p-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl lg:text-3xl font-bold">Automations</h1>
+          {automationHistory.some((g) => g.status === 'failed') && (
+            <button
+              onClick={handleDeleteFailed}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-400 hover:text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg transition-colors"
+            >
+              <X className="h-3 w-3" /> Delete Failed
+            </button>
+          )}
         </div>
 
         {automationHistory.length === 0 ? (
