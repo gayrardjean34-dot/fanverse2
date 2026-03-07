@@ -23,13 +23,9 @@ export async function GET(request: NextRequest) {
 
     // Filter automation models
     if (excludeAutomations) {
-      whereConditions.push(
-        and(
-          // Exclude automation models
-          ne(generations.model, 'automation-selfie'),
-          ne(generations.model, 'automation-faceswap')
-        )
-      );
+      // Exclude automation models
+      whereConditions.push(ne(generations.model, 'automation-selfie'));
+      whereConditions.push(ne(generations.model, 'automation-faceswap'));
     } else if (includeAutomationsOnly) {
       whereConditions.push(
         or(
