@@ -27,7 +27,11 @@ export const AI_PROVIDERS: Record<string, ModelConfig> = {
     type: 'image',
     apiModel: 'nano-banana-pro',
     resolutions: ['1K', '2K', '4K'],
-    getCreditCost: ({ resolution }) => resolution === '4K' ? 25 : 20,
+    getCreditCost: ({ resolution }) => {
+      if (resolution === '4K') return 36;
+      if (resolution === '2K') return 18;
+      return 10; // 1K
+    },
   },
   'grok-imagine': {
     name: 'Grok Imagine',
