@@ -15,6 +15,8 @@ import {
   Upload as UploadIcon,
   Lock,
   ShieldAlert,
+  CheckSquare,
+  Square,
 } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -177,26 +179,49 @@ function AutomationMediaModal({
 function AutomationGenCard({
   gen,
   onClick,
+  selected,
+  onToggleSelect,
+  selectionMode,
 }: {
   gen: Generation;
   onClick: () => void;
+  selected: boolean;
+  onToggleSelect: () => void;
+  selectionMode: boolean;
 }) {
   const isPending = gen.status === 'pending' || gen.status === 'processing';
   const isFailed = gen.status === 'failed';
   const cleanifyFailed = gen.resultData?.cleanifyFailed === true;
 
+  function handleClick(e: React.MouseEvent) {
+    if (selectionMode) {
+      e.stopPropagation();
+      onToggleSelect();
+    } else {
+      onClick();
+    }
+  }
+
   return (
     <div
       className={`relative group rounded-xl overflow-hidden border transition-all cursor-pointer ${
-        isFailed
+        selected
+          ? 'border-[#28B8F6] ring-2 ring-[#28B8F6]/30'
+          : isFailed
           ? 'border-red-500/30 bg-[#222]'
           : isPending
           ? 'border-[#7F6DE7]/30 bg-[#222]'
           : 'border-[#333] bg-[#222] hover:border-[#7F6DE7]/50'
       }`}
-      onClick={onClick}
+      onClick={handleClick}
       title={getAutomationName(gen.model)} // Tooltip with automation name
     >
+      {selectionMode && (
+        <div className="absolute top-2 left-2 z-10">
+          {selected ? <CheckSquare className="h-5 w-5 text-[#28B8F6]" /> : <Square className="h-5 w-5 text-gray-400" />}
+        </div>
+      )}
+
       {isPending && (
         <div className="aspect-square flex items-center justify-center bg-[#1a1a1a]">
           <div className="text-center">
@@ -257,6 +282,8 @@ export default function AutomationsStudio() {
   const [generating, setGenerating] = useState(false);
   const [selectedGen, setSelectedGen] = useState<Generation | null>(null);
   const [unlocking, setUnlocking] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const refInputRef = useRef<HTMLInputElement>(null);
   const swapsInputRef = useRef<HTMLInputElement>(null);
 
@@ -388,6 +415,38 @@ export default function AutomationsStudio() {
     }
   }, [automationHistory, mutateHistory]);
 
+  const handleSelectAll = useCallback(() => {
+    if (!automationHistory) return;
+    setSelectedIds(selectedIds.size === automationHistory.length ? new Set() : new Set(automationHistory.map((g) => g.id)));
+  }, [automationHistory, selectedIds.size]);
+
+  const toggleSelection = useCallback((id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const handleDeleteSelected = useCallback(async () => {
+    if (selectedIds.size === 0) return;
+    
+    if (!confirm(`Delete ${selectedIds.size} selected image(s)?`)) return;
+
+    try {
+      await fetch('/api/generate/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+      });
+      mutateHistory();
+      setSelectedIds(new Set());
+      setSelectionMode(false);
+    } catch {
+      alert('Failed to delete generations.');
+    }
+  }, [selectedIds, mutateHistory]);
+
   async function handleGenerate() {
     if (!referenceImage || generating || uploading) return;
     if (isFaceSwap && swapImages.length === 0) return;
@@ -451,13 +510,35 @@ export default function AutomationsStudio() {
       <div className="flex-1 overflow-y-auto p-4 lg:p-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl lg:text-3xl font-bold">Automations</h1>
-          {automationHistory.some((g) => g.status === 'failed') && (
-            <button
-              onClick={handleDeleteFailed}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-400 hover:text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg transition-colors"
-            >
-              <X className="h-3 w-3" /> Delete Failed
-            </button>
+          {automationHistory && automationHistory.length > 0 && (
+            <div className="flex items-center gap-2">
+              {selectionMode ? (
+                <>
+                  <button onClick={handleSelectAll} className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded transition-colors">
+                    {selectedIds.size === automationHistory.length ? 'Deselect All' : 'Select All'}
+                  </button>
+                  <button onClick={handleDeleteSelected} disabled={selectedIds.size === 0}
+                    className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded bg-red-500/10 border border-red-500/30 disabled:opacity-30 transition-colors">
+                    <X className="h-3 w-3" /> Delete ({selectedIds.size})
+                  </button>
+                  <button onClick={() => { setSelectionMode(false); setSelectedIds(new Set()); }}
+                    className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded transition-colors">Cancel</button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => setSelectionMode(true)}
+                    className="text-xs text-gray-500 hover:text-gray-300 px-2 py-1 rounded transition-colors">Select</button>
+                  {automationHistory.some((g) => g.status === 'failed') && (
+                    <button
+                      onClick={handleDeleteFailed}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-400 hover:text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg transition-colors"
+                    >
+                      <X className="h-3 w-3" /> Delete Failed
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
           )}
         </div>
 
@@ -480,6 +561,9 @@ export default function AutomationsStudio() {
                 key={gen.id}
                 gen={gen}
                 onClick={() => setSelectedGen(gen)}
+                selected={selectedIds.has(gen.id)}
+                onToggleSelect={() => toggleSelection(gen.id)}
+                selectionMode={selectionMode}
               />
             ))}
           </div>
