@@ -42,11 +42,12 @@ export async function POST(request: NextRequest) {
         })
         .where(eq(generations.id, gen.id));
     } else if (imageUrl) {
+      const cleanifyFailed = body.cleanifyFailed === true || body.cleanify_failed === true;
       await db.update(generations)
         .set({
           status: 'completed',
           resultUrl: imageUrl,
-          resultData: body,
+          resultData: { ...body, cleanifyFailed },
           updatedAt: new Date(),
         })
         .where(eq(generations.id, gen.id));

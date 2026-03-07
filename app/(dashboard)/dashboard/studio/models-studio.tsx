@@ -43,6 +43,7 @@ type Generation = {
   referenceImages: string[];
   status: string;
   resultUrl: string | null;
+  resultData: { cleanifyFailed?: boolean; images?: string[] } | null;
   creditCost: number;
   error: string | null;
   createdAt: string;
@@ -150,6 +151,13 @@ function MediaModal({
               <p className="text-red-400 font-medium">Generation Failed</p>
               {gen.error && <p className="text-red-400/60 text-sm mt-1 max-w-md">{gen.error}</p>}
             </div>
+          </div>
+        )}
+
+        {gen.resultData?.cleanifyFailed && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 mb-4">
+            <AlertTriangle className="h-4 w-4 text-red-400 shrink-0" />
+            <span className="text-sm text-red-400">Metadata cleaning failed — this image may still contain original metadata.</span>
           </div>
         )}
 
@@ -262,6 +270,14 @@ function GenCard({
         <div className="absolute top-2 right-2 z-10">
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/60 text-white backdrop-blur-sm">
             {isVideo ? '🎬' : '🖼️'}
+          </span>
+        </div>
+      )}
+      {/* Cleanify failed badge */}
+      {gen.status === 'completed' && gen.resultData?.cleanifyFailed && (
+        <div className="absolute bottom-2 left-2 z-10">
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/80 text-white backdrop-blur-sm font-medium">
+            ⚠️ Metadata
           </span>
         </div>
       )}
