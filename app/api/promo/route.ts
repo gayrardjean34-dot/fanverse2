@@ -4,6 +4,21 @@ import { getUser, getUserCreditBalance, createCreditTransaction } from '@/lib/db
 // Promo codes: code → { credits, maxUses (0 = unlimited), description }
 const PROMO_CODES: Record<string, { credits: number; maxUses: number; description: string }> = {
   'FANVERSE1000': { credits: 1000, maxUses: 0, description: 'Fanverse testing promo' },
+  'FV-GIFT-7X9A': { credits: 100, maxUses: 1, description: '100 credits gift code' },
+  'FV-GIFT-3M2K': { credits: 100, maxUses: 1, description: '100 credits gift code' },
+  'FV-GIFT-8P4W': { credits: 100, maxUses: 1, description: '100 credits gift code' },
+  'FV-GIFT-1N6R': { credits: 100, maxUses: 1, description: '100 credits gift code' },
+  'FV-GIFT-5Q8T': { credits: 100, maxUses: 1, description: '100 credits gift code' },
+  'FV-GIFT-2D9F': { credits: 100, maxUses: 1, description: '100 credits gift code' },
+  'FV-GIFT-6H3J': { credits: 100, maxUses: 1, description: '100 credits gift code' },
+  'FV-GIFT-4L7V': { credits: 100, maxUses: 1, description: '100 credits gift code' },
+  'FV-GIFT-9B1C': { credits: 100, maxUses: 1, description: '100 credits gift code' },
+  'FV-GIFT-0Y5E': { credits: 100, maxUses: 1, description: '100 credits gift code' },
+  'FV-GIFT-8K2S': { credits: 100, maxUses: 1, description: '100 credits gift code' },
+  'FV-GIFT-3W6Z': { credits: 100, maxUses: 1, description: '100 credits gift code' },
+  'FV-GIFT-7A4U': { credits: 100, maxUses: 1, description: '100 credits gift code' },
+  'FV-GIFT-1X9G': { credits: 100, maxUses: 1, description: '100 credits gift code' },
+  'FV-GIFT-5R2M': { credits: 100, maxUses: 1, description: '100 credits gift code' },
 };
 
 // Track usage in-memory (resets on redeploy). For production, use DB.
