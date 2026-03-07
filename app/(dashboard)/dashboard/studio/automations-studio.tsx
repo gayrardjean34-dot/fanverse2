@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   Upload as UploadIcon,
   Lock,
+  ShieldAlert,
 } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -27,7 +28,6 @@ type UserData = {
 // Compress image client-side to stay under Vercel's 4.5MB limit
 function compressImage(file: File, maxWidth = 2048, quality = 0.85): Promise<File> {
   return new Promise((resolve, reject) => {
-    // If already small enough, skip compression
     if (file.size < 2 * 1024 * 1024) {
       resolve(file);
       return;
@@ -95,7 +95,7 @@ type Generation = {
   prompt: string;
   status: string;
   resultUrl: string | null;
-  resultData: { images?: string[] } | null;
+  resultData: { images?: string[]; cleanifyFailed?: boolean } | null;
   creditCost: number;
   error: string | null;
   createdAt: string;
@@ -106,7 +106,7 @@ function getDownloadUrl(url: string): string {
   return `/api/generate/download?url=${encodeURIComponent(url)}`;
 }
 
-// ── Image Lightbox (simplified) ──
+// ── Image Lightbox (matching models-studio style) ──
 function AutomationMediaModal({
   gen,
   onClose,
@@ -114,33 +114,22 @@ function AutomationMediaModal({
   gen: Generation;
   onClose: () => void;
 }) {
-  const images = gen.resultData?.images || (gen.resultUrl ? [gen.resultUrl] : []);
+  const cleanifyFailed = gen.resultData?.cleanifyFailed === true;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="bg-[#222] border border-[#333] rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-[#222] border border-[#333] rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-500 font-mono">{gen.model}</span>
+            <span className="text-xs px-1.5 py-0.5 rounded bg-[#333] text-gray-400">⚡ Automation</span>
             <span className="text-xs text-gray-500">{gen.creditCost} cr</span>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="h-5 w-5" /></button>
         </div>
 
-        {gen.status === 'completed' && images.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
-            {images.map((url, i) => (
-              <div key={i} className="relative group">
-                <img src={url} alt={`Result ${i + 1}`} className="w-full rounded-xl object-cover aspect-square bg-black" />
-                <a
-                  href={getDownloadUrl(url)}
-                  className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#28B8F6] text-[#191919] text-xs font-medium hover:bg-[#28B8F6]/80"
-                >
-                  <Download className="h-3 w-3" /> Download
-                </a>
-              </div>
-            ))}
-          </div>
+        {gen.status === 'completed' && gen.resultUrl && (
+          <img src={gen.resultUrl} alt="Generated" className="w-full rounded-xl mb-4 max-h-[50vh] object-contain bg-black" />
         )}
 
         {gen.status === 'failed' && (
@@ -153,17 +142,24 @@ function AutomationMediaModal({
           </div>
         )}
 
-        {gen.status === 'completed' && images.length > 1 && (
+        {/* Cleanify warning */}
+        {cleanifyFailed && gen.status === 'completed' && (
+          <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-2 mb-4">
+            <ShieldAlert className="h-4 w-4 text-yellow-400 shrink-0" />
+            <p className="text-xs text-yellow-400">
+              Metadata cleaning failed for this image. The original AI metadata may still be present.
+            </p>
+          </div>
+        )}
+
+        {gen.status === 'completed' && gen.resultUrl && (
           <div className="flex gap-2">
-            {images.map((url, i) => (
-              <a
-                key={i}
-                href={getDownloadUrl(url)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#28B8F6] text-[#191919] text-sm font-medium hover:bg-[#28B8F6]/80 transition-colors"
-              >
-                <Download className="h-4 w-4" /> #{i + 1}
-              </a>
-            ))}
+            <a
+              href={getDownloadUrl(gen.resultUrl)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#28B8F6] text-[#191919] text-sm font-medium hover:bg-[#28B8F6]/80 transition-colors"
+            >
+              <Download className="h-4 w-4" /> Download
+            </a>
           </div>
         )}
       </div>
@@ -181,6 +177,7 @@ function AutomationGenCard({
 }) {
   const isPending = gen.status === 'pending' || gen.status === 'processing';
   const isFailed = gen.status === 'failed';
+  const cleanifyFailed = gen.resultData?.cleanifyFailed === true;
 
   return (
     <div
@@ -213,6 +210,14 @@ function AutomationGenCard({
       {gen.status === 'completed' && gen.resultUrl && (
         <>
           <img src={gen.resultUrl} alt="" className="aspect-square w-full object-cover" />
+          {/* Cleanify warning badge */}
+          {cleanifyFailed && (
+            <div className="absolute top-2 left-2 z-10">
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/80 text-black font-medium backdrop-blur-sm">
+                ⚠️ Metadata
+              </span>
+            </div>
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
             <div className="absolute bottom-0 left-0 right-0 p-3">
               <div className="flex items-center gap-2">
@@ -250,7 +255,7 @@ export default function AutomationsStudio() {
 
   const { data: userData, mutate: mutateUser } = useSWR<UserData>('/api/user', fetcher);
   const unlockedAutomations = userData?.unlockedAutomations || [];
-  const freeUnlockUsed = userData?.freeUnlockUsed ?? true; // default true to hide button until loaded
+  const freeUnlockUsed = userData?.freeUnlockUsed ?? true;
 
   const isAutomationUnlocked = (id: string) => unlockedAutomations.includes(id);
 
@@ -295,14 +300,12 @@ export default function AutomationsStudio() {
     if (!hasPending) return;
     let cleanupCalled = false;
     const interval = setInterval(async () => {
-      // Every 30s, call cleanup to timeout stuck generations and refund
       if (!cleanupCalled) {
         cleanupCalled = true;
         try { await fetch('/api/automations/cleanup', { method: 'POST' }); } catch {}
       }
       mutateHistory();
     }, 3000);
-    // Also call cleanup once immediately
     fetch('/api/automations/cleanup', { method: 'POST' }).catch(() => {});
     return () => clearInterval(interval);
   }, [hasPending, mutateHistory]);
@@ -361,7 +364,6 @@ export default function AutomationsStudio() {
     if (isFaceSwap && swapImages.length === 0) return;
 
     try {
-      // Step 1: Compress & upload images one by one to Vercel Blob
       setUploading(true);
 
       async function uploadOne(file: File): Promise<string> {
@@ -383,7 +385,6 @@ export default function AutomationsStudio() {
 
       setUploading(false);
 
-      // Step 2: Send URLs to API
       setGenerating(true);
 
       const body = isFaceSwap
@@ -478,7 +479,6 @@ export default function AutomationsStudio() {
       <div className="border-t border-[#333] bg-[#1a1a1a] p-4">
         {/* Image previews */}
         <div className="flex gap-3 mb-3 flex-wrap">
-          {/* Reference image preview */}
           {referenceImage && (
             <div className="relative shrink-0 w-20 h-20">
               <img src={referenceImage.preview} alt="Reference" className="w-full h-full object-cover rounded-lg border border-[#7F6DE7]/50" />
@@ -492,7 +492,6 @@ export default function AutomationsStudio() {
             </div>
           )}
 
-          {/* Swap images previews (face-swap only) */}
           {isFaceSwap && swapImages.map((img, i) => (
             <div key={i} className="relative shrink-0 w-20 h-20">
               <img src={img.preview} alt={`Swap ${i + 1}`} className="w-full h-full object-cover rounded-lg border border-[#333]" />
@@ -510,7 +509,6 @@ export default function AutomationsStudio() {
         {/* Controls row */}
         <div className="flex gap-3 items-end">
           <div className="flex-1 flex gap-3 items-end">
-            {/* Reference image upload */}
             <div className="relative shrink-0">
               <button onClick={() => refInputRef.current?.click()}
                 className={`h-12 w-12 rounded-xl border flex items-center justify-center transition-colors ${
@@ -530,7 +528,6 @@ export default function AutomationsStudio() {
             </div>
             <input ref={refInputRef} type="file" accept="image/*" className="hidden" onChange={handleRefSelect} />
 
-            {/* Swap images upload (face-swap only) */}
             {isFaceSwap && (
               <>
                 <div className="relative shrink-0">
@@ -554,7 +551,6 @@ export default function AutomationsStudio() {
               </>
             )}
 
-            {/* Quantity (infinite-selfies only) */}
             {!isFaceSwap && (
               <div className="w-32">
                 <Label className="text-xs text-gray-500 mb-1 block">How many images</Label>
@@ -569,7 +565,6 @@ export default function AutomationsStudio() {
               </div>
             )}
 
-            {/* Swap count info (face-swap) */}
             {isFaceSwap && (
               <div className="text-xs text-gray-500 self-center">
                 {swapImages.length}/15 images
@@ -577,7 +572,6 @@ export default function AutomationsStudio() {
             )}
           </div>
 
-          {/* Automation selector + Generate */}
           <div className="flex flex-col gap-2 shrink-0">
             <select
               className="bg-[#222] border border-[#333] text-[#FEFEFE] text-sm h-8 rounded-lg px-2 outline-none"

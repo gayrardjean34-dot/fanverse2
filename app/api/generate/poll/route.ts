@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, lt, inArray } from 'drizzle-orm';
 import { db } from '@/lib/db/drizzle';
 import { generations } from '@/lib/db/schema';
-import { getUser } from '@/lib/db/queries';
+import { getUser, createCreditTransaction } from '@/lib/db/queries';
+
+const GENERATION_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 
 // This endpoint checks for stuck "processing" generations and tries to poll kie.ai
 export async function POST(request: NextRequest) {
@@ -76,7 +78,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ checked: stuckGens.length, updated });
+    // Timeout stuck generations (>10 min) — mark failed + refund
+    const cutoff = new Date(Date.now() - GENERATION_TIMEOUT_MS);
+    let timedOut = 0;
+    for (const gen of stuckGens) {
+      if (new Date(gen.createdAt) < cutoff && (gen.status === 'pending' || gen.status === 'processing')) {
+        await db.update(generations)
+          .set({
+            status: 'failed',
+            error: 'Generation timed out. Credits have been refunded.',
+            updatedAt: new Date(),
+          })
+          .where(eq(generations.id, gen.id));
+
+        if (gen.creditCost > 0) {
+          await createCreditTransaction({
+            userId: user.id,
+            amount: gen.creditCost,
+            type: 'refund',
+            reason: `Refund: generation #${gen.id} timed out`,
+          });
+        }
+        timedOut++;
+      }
+    }
+
+    return NextResponse.json({ checked: stuckGens.length, updated, timedOut });
   } catch (error: any) {
     console.error('Poll error:', error);
     return NextResponse.json({ error: 'Something went wrong.' }, { status: 500 });

@@ -63,18 +63,24 @@ export async function POST(request: NextRequest) {
       reason: `Automation: ${quantity} selfie(s)`,
     });
 
-    const [gen] = await db.insert(generations).values({
+    // Create one generation per image requested — all show as "processing"
+    const costPerImage = Math.floor(totalCost / quantity);
+    const remainder = totalCost - costPerImage * quantity;
+
+    const genValues = Array.from({ length: quantity }, (_, i) => ({
       userId: user.id,
       batchId,
-      model: 'automation-selfie',
-      prompt: `Generate ${quantity} selfie(s) from reference image`,
-      aspectRatio: '1:1',
-      resolution: '1K',
-      referenceImages: [],
-      status: 'processing',
-      creditCost: totalCost,
+      model: 'automation-selfie' as const,
+      prompt: `Generate selfie from reference image (${i + 1}/${quantity})`,
+      aspectRatio: '1:1' as const,
+      resolution: '1K' as const,
+      referenceImages: [] as string[],
+      status: 'processing' as const,
+      creditCost: i === 0 ? costPerImage + remainder : costPerImage,
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    }).returning();
+    }));
+
+    const insertedGens = await db.insert(generations).values(genValues).returning();
 
     const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://fanverse.lol'}/api/automations/callback`;
 
@@ -85,7 +91,7 @@ export async function POST(request: NextRequest) {
         refUrl,
         quantity,
         batchId,
-        generationId: gen.id.toString(),
+        generationId: insertedGens[0].id.toString(),
         callbackUrl,
       }),
     }).catch((err) => {
@@ -95,7 +101,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       batchId,
-      generationId: gen.id,
+      generationId: insertedGens[0].id,
       creditCost: totalCost,
       quantity,
     });
@@ -107,22 +113,18 @@ export async function POST(request: NextRequest) {
 
 // ── Access check ──
 async function checkAutomationAccess(user: any, automationId: string): Promise<boolean> {
-  // Check if user has unlocked this automation (free unlock)
   const unlockedAutomations = (user.unlockedAutomations as string[]) || [];
   if (unlockedAutomations.includes(automationId)) {
     return true;
   }
 
-  // Check subscription plan
   const team = await getTeamForUser();
   if (team) {
     const planName = (team.planName || '').toLowerCase();
     const isActive = team.subscriptionStatus === 'active' || team.subscriptionStatus === 'trialing';
 
     if (isActive) {
-      // Pro plan: access to all automations
       if (planName.includes('pro')) return true;
-      // Starter plan: access to 2 automations
       if (planName.includes('starter')) return true;
     }
   }
@@ -165,18 +167,24 @@ async function handleFaceSwap(body: any, user: { id: number }) {
     reason: `Automation: face swap on ${swapUrls.length} image(s)`,
   });
 
-  const [gen] = await db.insert(generations).values({
+  // Create one generation per swap image — all show as "processing"
+  const costPerImage = Math.floor(totalCost / swapUrls.length);
+  const remainder = totalCost - costPerImage * swapUrls.length;
+
+  const genValues = swapUrls.map((_, i) => ({
     userId: user.id,
     batchId,
-    model: 'automation-faceswap',
-    prompt: `Face swap on ${swapUrls.length} image(s) from reference`,
-    aspectRatio: '1:1',
-    resolution: '1K',
-    referenceImages: [],
-    status: 'processing',
-    creditCost: totalCost,
+    model: 'automation-faceswap' as const,
+    prompt: `Face swap image ${i + 1}/${swapUrls.length} from reference`,
+    aspectRatio: '1:1' as const,
+    resolution: '1K' as const,
+    referenceImages: [] as string[],
+    status: 'processing' as const,
+    creditCost: i === 0 ? costPerImage + remainder : costPerImage,
     expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-  }).returning();
+  }));
+
+  const insertedGens = await db.insert(generations).values(genValues).returning();
 
   const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://fanverse.lol'}/api/automations/callback`;
 
@@ -187,7 +195,7 @@ async function handleFaceSwap(body: any, user: { id: number }) {
       ref: refUrl,
       swaps: swapUrls,
       batchId,
-      generationId: gen.id.toString(),
+      generationId: insertedGens[0].id.toString(),
       callbackUrl,
     }),
   }).catch((err) => {
@@ -197,7 +205,7 @@ async function handleFaceSwap(body: any, user: { id: number }) {
   return NextResponse.json({
     success: true,
     batchId,
-    generationId: gen.id,
+    generationId: insertedGens[0].id,
     creditCost: totalCost,
     quantity: swapUrls.length,
   });
