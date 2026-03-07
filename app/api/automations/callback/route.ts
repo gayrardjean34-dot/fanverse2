@@ -12,7 +12,31 @@ import { createCreditTransaction } from '@/lib/db/queries';
 //   Error:         { generationId, error: "..." }
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    let body: any;
+
+    const contentType = request.headers.get('content-type') || '';
+
+    if (contentType.includes('multipart/form-data')) {
+      // n8n sends form-data with binary file + fields
+      const formData = await request.formData();
+      body = {} as any;
+
+      for (const [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          // Convert binary file to base64 data URL
+          const buffer = Buffer.from(await value.arrayBuffer());
+          const mimeType = value.type || 'image/jpeg';
+          body.imageBase64 = `data:${mimeType};base64,${buffer.toString('base64')}`;
+        } else {
+          // Parse numeric strings for IDs
+          const num = Number(value);
+          body[key] = (!isNaN(num) && value !== '') ? num : value;
+        }
+      }
+    } else {
+      body = await request.json();
+    }
+
     const { generationId, batchId, imageBase64, imageUrl, images, imagesBase64, error } = body;
 
     if (!generationId && !batchId) {
