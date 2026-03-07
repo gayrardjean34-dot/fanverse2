@@ -16,29 +16,36 @@ export async function GET(request: NextRequest) {
     const excludeAutomations = request.nextUrl.searchParams.get('excludeAutomations') === 'true';
     const includeAutomationsOnly = request.nextUrl.searchParams.get('automationsOnly') === 'true';
 
-    let whereConditions = [
+    let whereClause;
+
+    const baseCondition = and(
       eq(generations.userId, user.id),
       gt(generations.expiresAt, new Date())
-    ];
+    );
 
     // Filter automation models
     if (excludeAutomations) {
-      // Exclude automation models
-      whereConditions.push(ne(generations.model, 'automation-selfie'));
-      whereConditions.push(ne(generations.model, 'automation-faceswap'));
+      whereClause = and(
+        baseCondition,
+        ne(generations.model, 'automation-selfie'),
+        ne(generations.model, 'automation-faceswap')
+      );
     } else if (includeAutomationsOnly) {
-      whereConditions.push(
+      whereClause = and(
+        baseCondition,
         or(
           eq(generations.model, 'automation-selfie'),
           eq(generations.model, 'automation-faceswap')
         )
       );
+    } else {
+      whereClause = baseCondition;
     }
 
     const results = await db
       .select()
       .from(generations)
-      .where(and(...whereConditions))
+      .where(whereClause)
       .orderBy(desc(generations.createdAt))
       .limit(limit)
       .offset(offset);
