@@ -23,7 +23,7 @@ export default function HomePage() {
               <span className="block fan-gradient-text">Fanverse</span>
             </h1>
             <p className="text-lg sm:text-xl text-gray-400 mb-10 max-w-2xl mx-auto">
-              Unleash your creativity with powerful AI workflows. Generate stunning images,
+              Scale your AI Influencer with AI automations. Generate realistic images,
               videos, for your AI influencer, using cutting-edge models — all in one platform.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
