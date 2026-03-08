@@ -49,12 +49,20 @@ function VitrineSlideshow() {
         />
       ))}
 
-      {/* 4K Quality badge — top left, Fanverse gradient at 75% opacity */}
+      {/* 4K Quality badge — top left */}
       <div
         className="absolute top-3 left-3 z-10 flex items-center px-2.5 py-1 rounded-lg backdrop-blur-sm"
         style={{ background: 'linear-gradient(135deg, rgba(40,184,246,0.75) 0%, rgba(127,109,231,0.75) 50%, rgba(211,36,217,0.75) 100%)' }}
       >
         <span className="text-[11px] font-bold text-white tracking-wide">4K Quality</span>
+      </div>
+
+      {/* Pictures from our automations badge — top center */}
+      <div
+        className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center px-2.5 py-1 rounded-lg backdrop-blur-sm whitespace-nowrap"
+        style={{ background: 'linear-gradient(135deg, rgba(40,184,246,0.75) 0%, rgba(127,109,231,0.75) 50%, rgba(211,36,217,0.75) 100%)' }}
+      >
+        <span className="text-[11px] font-bold text-white tracking-wide">Pictures from our automations</span>
       </div>
 
       {/* Subtle gradient at bottom */}
