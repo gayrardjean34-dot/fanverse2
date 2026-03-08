@@ -24,7 +24,9 @@ import {
   Volume2,
   VolumeX,
   Sparkles,
+  Film,
 } from 'lucide-react';
+import { upload } from '@vercel/blob/client';
 import { AI_PROVIDERS, ACTIVE_PROVIDER_IDS, type ModelConfig } from '@/lib/ai/providers';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -347,10 +349,17 @@ export default function ModelsStudio() {
   const [duration, setDuration] = useState('5');
   const [videoMode, setVideoMode] = useState('standard');
   const [sound, setSound] = useState(false);
+  // Motion control
+  const [referenceVideo, setReferenceVideo] = useState<string | null>(null);
+  const [referenceVideoName, setReferenceVideoName] = useState<string>('');
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const providerConfig = AI_PROVIDERS[model];
   const isVideoModel = providerConfig?.type === 'video';
+  const isMotionControl = !!providerConfig?.requiresReferenceVideo;
 
   // Compute credit cost dynamically
   const creditCost = useMemo(() => {
@@ -371,10 +380,15 @@ export default function ModelsStudio() {
       setDuration(providerConfig.defaultDuration || '5');
       if (providerConfig.modes) setVideoMode(providerConfig.modes[0]);
       setSound(false);
+      if (providerConfig.resolutions) setResolution(providerConfig.resolutions[0]);
     } else {
       setAspectRatio('1:1');
       setResolution('1K');
     }
+    // Clear motion control state when switching models
+    setReferenceVideo(null);
+    setReferenceVideoName('');
+    setVideoError(null);
   }, [model]);
 
   const { data: history, mutate: mutateHistory } = useSWR<Generation[]>(
@@ -396,6 +410,36 @@ export default function ModelsStudio() {
     }, 2000);
     return () => clearInterval(interval);
   }, [hasPending, mutateHistory]);
+
+  const handleVideoSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    if (file.type !== 'video/mp4') {
+      setVideoError('Only MP4 format is accepted.');
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      setVideoError('Video must be under 50 MB.');
+      return;
+    }
+
+    setVideoError(null);
+    setUploadingVideo(true);
+    try {
+      const blob = await upload(file.name, file, {
+        access: 'public',
+        handleUploadUrl: '/api/upload/video',
+      });
+      setReferenceVideo(blob.url);
+      setReferenceVideoName(file.name);
+    } catch (err: any) {
+      setVideoError(err.message || 'Upload failed.');
+    } finally {
+      setUploadingVideo(false);
+    }
+  }, []);
 
   const handleAddImages = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -466,6 +510,7 @@ export default function ModelsStudio() {
 
   async function handleGenerate() {
     if (!prompt.trim() || generating) return;
+    if (isMotionControl && !referenceVideo) return;
     setGenerating(true);
     try {
       const payload: Record<string, any> = {
@@ -477,7 +522,11 @@ export default function ModelsStudio() {
         batchSize,
       };
 
-      if (isVideoModel) {
+      if (isMotionControl) {
+        payload.duration = duration;
+        payload.resolution = resolution;
+        payload.referenceVideo = referenceVideo;
+      } else if (isVideoModel) {
         payload.duration = duration;
         if (providerConfig.supportsMode) payload.mode = videoMode;
         if (providerConfig.supportsSound) payload.sound = sound;
@@ -581,6 +630,47 @@ export default function ModelsStudio() {
                 <ImagePlus className="h-5 w-5" />
               </button>
             )}
+          </div>
+        )}
+
+        {/* Motion control video input */}
+        {isMotionControl && (
+          <div className="mb-3">
+            <div className="flex items-center gap-2 mb-1.5">
+              <Film className="h-4 w-4 text-gray-400" />
+              <span className="text-xs text-gray-400 font-medium">Motion Reference Video <span className="text-red-400">*</span></span>
+              <span className="text-xs text-gray-600">(MP4 only, max 50 MB)</span>
+            </div>
+            {referenceVideo ? (
+              <div className="flex items-center gap-2 bg-[#222] border border-[#333] rounded-xl px-3 py-2">
+                <Film className="h-4 w-4 text-[#7F6DE7] shrink-0" />
+                <span className="text-sm text-gray-300 flex-1 truncate">{referenceVideoName}</span>
+                <button
+                  onClick={() => { setReferenceVideo(null); setReferenceVideoName(''); }}
+                  className="text-gray-500 hover:text-red-400 transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => videoInputRef.current?.click()}
+                disabled={uploadingVideo}
+                className="w-full flex items-center justify-center gap-2 bg-[#222] border border-dashed border-[#444] rounded-xl px-3 py-3 text-sm text-gray-500 hover:text-gray-300 hover:border-[#7F6DE7]/50 transition-colors disabled:opacity-50"
+              >
+                {uploadingVideo ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Uploading...</>
+                ) : (
+                  <><Film className="h-4 w-4" /> Click to upload MP4</>
+                )}
+              </button>
+            )}
+            {videoError && (
+              <p className="text-xs text-red-400 mt-1 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" /> {videoError}
+              </p>
+            )}
+            <input ref={videoInputRef} type="file" accept="video/mp4" className="hidden" onChange={handleVideoSelect} />
           </div>
         )}
 
@@ -755,7 +845,7 @@ export default function ModelsStudio() {
             </select>
             <Button
               onClick={handleGenerate}
-              disabled={generating || !prompt.trim()}
+              disabled={generating || !prompt.trim() || (isMotionControl && !referenceVideo) || uploadingVideo}
               className="h-12 px-6 bg-[#28B8F6] hover:bg-[#28B8F6]/80 text-[#191919] font-semibold rounded-xl">
               {generating ? (
                 <Loader2 className="animate-spin h-5 w-5" />

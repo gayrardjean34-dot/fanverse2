@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
       duration,
       mode,
       sound,
+      referenceVideo,
     } = body;
 
     if (!model || !prompt) {
@@ -167,6 +168,18 @@ export async function POST(request: NextRequest) {
         input.duration = duration || '5';
         if (referenceImages.length > 0) {
           input.image_urls = referenceImages.filter((img: string) => img.startsWith('http'));
+        }
+      } else if (model === 'kling-motion-control') {
+        // Kling Motion Control
+        input.prompt = prompt;
+        input.mode = resolution || '720p';
+        input.character_orientation = 'video';
+        input.duration = duration || '5';
+        if (referenceImages.length > 0) {
+          input.input_urls = referenceImages.filter((img: string) => img.startsWith('http'));
+        }
+        if (referenceVideo) {
+          input.video_urls = [referenceVideo];
         }
       }
 
