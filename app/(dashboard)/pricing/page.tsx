@@ -25,7 +25,7 @@ export default async function PricingPage() {
     <main className="relative min-h-screen">
       {/* Animated background */}
       <div className="fixed inset-0 -z-10">
-        <video src="/images/logo-animated.webm" autoPlay loop muted playsInline className="w-full h-full object-cover" />
+        <video src="/images/LASTHQ.webm" autoPlay loop muted playsInline className="w-full h-full object-cover" />
       </div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <div className="text-center mb-16">
