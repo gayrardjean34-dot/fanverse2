@@ -30,7 +30,7 @@ function VitrineSlideshow() {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrent((c) => (c + 1) % VITRINE_IMAGES.length);
-    }, 2500);
+    }, 4000);
     return () => clearInterval(interval);
   }, []);
 
