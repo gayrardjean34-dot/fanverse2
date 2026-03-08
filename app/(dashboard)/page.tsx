@@ -109,7 +109,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <img src="/images/dzs.jpeg" alt="Fanverse" className="h-8 w-8 rounded-lg object-contain" />
-            <span className="text-lg font-bold text-[#FEFEFE]">Fanverse</span>
+            <img src="/images/JUSTE LE TEXTE.png" alt="Fanverse" className="h-[1.125rem] object-contain" />
           </div>
           <div className="flex items-center gap-6 text-sm text-gray-500">
             <Link href="/terms" className="hover:text-gray-300">Terms</Link>
