@@ -401,6 +401,8 @@ export default function ModelsStudio({
   const [videoError, setVideoError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  // When recreating, store params here so the model-change useEffect restores them instead of resetting to defaults
+  const recreateParamsRef = useRef<{ aspectRatio: string; resolution: string; temperature: string; topP: string; topK: string } | null>(null);
 
   const providerConfig = AI_PROVIDERS[model];
   const isVideoModel = providerConfig?.type === 'video';
@@ -417,9 +419,21 @@ export default function ModelsStudio({
     }) * batchSize;
   }, [providerConfig, resolution, duration, videoMode, sound, batchSize]);
 
-  // Reset params when model changes
+  // Reset params when model changes — but restore recreate params if coming from handleRecreate
   useEffect(() => {
     if (!providerConfig) return;
+
+    if (recreateParamsRef.current) {
+      const p = recreateParamsRef.current;
+      recreateParamsRef.current = null;
+      setAspectRatio(p.aspectRatio);
+      setResolution(p.resolution);
+      setTemperature(p.temperature);
+      setTopP(p.topP);
+      setTopK(p.topK);
+      return;
+    }
+
     if (providerConfig.type === 'video') {
       setAspectRatio('16:9');
       setDuration(providerConfig.defaultDuration || '5');
@@ -430,7 +444,6 @@ export default function ModelsStudio({
       setAspectRatio('1:1');
       setResolution('1K');
     }
-    // Clear motion control state when switching models
     setReferenceVideo(null);
     setReferenceVideoName('');
     setVideoError(null);
@@ -514,14 +527,30 @@ export default function ModelsStudio({
     setPrompt(gen.prompt);
     setSystemPrompt(gen.systemPrompt || '');
     if (gen.systemPrompt) setShowSystemPrompt(true);
-    setModel(gen.model);
-    setAspectRatio(gen.aspectRatio || '1:1');
-    setResolution(gen.resolution || '1K');
-    setTemperature(gen.temperature?.toString() || '');
-    setTopP(gen.topP?.toString() || '');
-    setTopK(gen.topK?.toString() || '');
     setReferenceImages(gen.referenceImages || []);
-  }, []);
+
+    const params = {
+      aspectRatio: gen.aspectRatio || '1:1',
+      resolution: gen.resolution || '1K',
+      temperature: gen.temperature?.toString() || '',
+      topP: gen.topP?.toString() || '',
+      topK: gen.topK?.toString() || '',
+    };
+
+    // If model changes, the useEffect will reset params — store them in ref so it restores instead
+    recreateParamsRef.current = params;
+    setModel(gen.model);
+
+    // If model is the same, useEffect won't fire — apply params directly
+    if (gen.model === model) {
+      recreateParamsRef.current = null;
+      setAspectRatio(params.aspectRatio);
+      setResolution(params.resolution);
+      setTemperature(params.temperature);
+      setTopP(params.topP);
+      setTopK(params.topK);
+    }
+  }, [model, setModel]);
 
   const handleDelete = useCallback(async (ids: number[]) => {
     try {
