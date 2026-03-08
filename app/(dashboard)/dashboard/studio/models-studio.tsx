@@ -674,23 +674,25 @@ export default function ModelsStudio() {
           </div>
         )}
 
-        {/* System prompt */}
-        <div className="mb-3">
-          <button onClick={() => setShowSystemPrompt(!showSystemPrompt)}
-            className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 mb-1 transition-colors">
-            {showSystemPrompt ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
-            System Prompt
-          </button>
-          {showSystemPrompt && (
-            <textarea
-              className="w-full bg-[#222] border border-[#333] text-[#FEFEFE] rounded-xl px-4 py-3 text-sm resize-none outline-none focus:border-[#28B8F6]/50 transition-colors placeholder-gray-500"
-              rows={3}
-              placeholder="Optional system prompt to guide the AI behavior..."
-              value={systemPrompt}
-              onChange={(e) => setSystemPrompt(e.target.value)}
-            />
-          )}
-        </div>
+        {/* System prompt — only for image models that support it */}
+        {(model === 'nano-banana-pro' || model === 'nano-banana-2') && (
+          <div className="mb-3">
+            <button onClick={() => setShowSystemPrompt(!showSystemPrompt)}
+              className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 mb-1 transition-colors">
+              {showSystemPrompt ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
+              System Prompt
+            </button>
+            {showSystemPrompt && (
+              <textarea
+                className="w-full bg-[#222] border border-[#333] text-[#FEFEFE] rounded-xl px-4 py-3 text-sm resize-none outline-none focus:border-[#28B8F6]/50 transition-colors placeholder-gray-500"
+                rows={3}
+                placeholder="Optional system prompt to guide the AI behavior..."
+                value={systemPrompt}
+                onChange={(e) => setSystemPrompt(e.target.value)}
+              />
+            )}
+          </div>
+        )}
 
         {/* Model-specific parameters */}
         <button onClick={() => setShowAdvanced(!showAdvanced)}
