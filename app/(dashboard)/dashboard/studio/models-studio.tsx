@@ -328,11 +328,16 @@ function GenCard({
 }
 
 // ── Main Studio ──
-export default function ModelsStudio() {
+export default function ModelsStudio({
+  model,
+  setModel,
+}: {
+  model: string;
+  setModel: (m: string) => void;
+}) {
   const [prompt, setPrompt] = useState('');
   const [systemPrompt, setSystemPrompt] = useState('');
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
-  const [model, setModel] = useState<string>('nano-banana-pro');
   const [aspectRatio, setAspectRatio] = useState('1:1');
   const [resolution, setResolution] = useState('1K');
   const [temperature, setTemperature] = useState<string>('');
@@ -836,15 +841,6 @@ export default function ModelsStudio() {
           </div>
 
           <div className="flex flex-col gap-2 shrink-0">
-            <select
-              className="bg-[#222] border border-[#333] text-[#FEFEFE] text-sm h-8 rounded-lg px-2 outline-none"
-              value={model} onChange={(e) => setModel(e.target.value)}>
-              {ACTIVE_PROVIDER_IDS.map((id) => (
-                <option key={id} value={id}>
-                  {AI_PROVIDERS[id].icon} {AI_PROVIDERS[id].name}
-                </option>
-              ))}
-            </select>
             <Button
               onClick={handleGenerate}
               disabled={generating || !prompt.trim() || (isMotionControl && !referenceVideo) || uploadingVideo}

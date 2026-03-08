@@ -297,8 +297,13 @@ function AutomationGenCard({
 }
 
 // ── Main Automations Studio ──
-export default function AutomationsStudio() {
-  const [selectedAutomation, setSelectedAutomation] = useState<AutomationId>('infinite-selfies');
+export default function AutomationsStudio({
+  selectedAutomation,
+  setSelectedAutomation,
+}: {
+  selectedAutomation: string;
+  setSelectedAutomation: (id: string) => void;
+}) {
   const [quantity, setQuantity] = useState(1);
   const [referenceImage, setReferenceImage] = useState<{ file: File; preview: string } | null>(null);
   const [swapImages, setSwapImages] = useState<{ file: File; preview: string }[]>([]);
@@ -339,8 +344,9 @@ export default function AutomationsStudio() {
     }
   }
 
-  const automation = AUTOMATIONS[selectedAutomation];
-  const isFaceSwap = selectedAutomation === 'face-swap' || selectedAutomation === 'ez-face-swap-uncensored';
+  const automationId = (AUTOMATION_IDS.includes(selectedAutomation as AutomationId) ? selectedAutomation : 'infinite-selfies') as AutomationId;
+  const automation = AUTOMATIONS[automationId];
+  const isFaceSwap = automationId === 'face-swap' || automationId === 'ez-face-swap-uncensored';
   const creditCost = isFaceSwap
     ? swapImages.length * automation.creditPerImage
     : quantity * automation.creditPerImage;
@@ -720,17 +726,6 @@ export default function AutomationsStudio() {
           </div>
 
           <div className="flex flex-col gap-2 shrink-0">
-            <select
-              className="bg-[#222] border border-[#333] text-[#FEFEFE] text-sm h-8 rounded-lg px-2 outline-none"
-              value={selectedAutomation}
-              onChange={(e) => setSelectedAutomation(e.target.value as AutomationId)}
-            >
-              {AUTOMATION_IDS.map((id) => (
-                <option key={id} value={id}>
-                  {isAutomationUnlocked(id) ? AUTOMATIONS[id].icon : '🔒'} {AUTOMATIONS[id].name}
-                </option>
-              ))}
-            </select>
             <Button
               onClick={handleGenerate}
               disabled={generating || uploading || !canGenerate}

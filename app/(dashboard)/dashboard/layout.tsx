@@ -21,6 +21,19 @@ export default function DashboardLayout({
     { href: '/dashboard/security', icon: Shield, label: 'Security' }
   ];
 
+  // Hide the settings sidebar on studio and workflows pages (they have their own sidebar)
+  const hideSidebar =
+    pathname.startsWith('/dashboard/studio') ||
+    pathname.startsWith('/dashboard/workflows');
+
+  if (hideSidebar) {
+    return (
+      <div className="min-h-[calc(100dvh-68px)] w-full bg-[#191919]">
+        {children}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-[calc(100dvh-68px)] max-w-7xl mx-auto w-full bg-[#191919]">
       {/* Mobile header */}
