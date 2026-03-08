@@ -108,7 +108,7 @@ function Header() {
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-3">
             <img src="/images/dzs.jpeg" alt="Fanverse" className="h-10 w-10 rounded-lg object-contain" />
-            <span className="text-xl font-bold text-[#FEFEFE] tracking-tight">Fanverse</span>
+            <img src="/images/JUSTE LE TEXTE.png" alt="Fanverse" className="h-[1.25rem] object-contain" />
           </Link>
           <nav className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => {
