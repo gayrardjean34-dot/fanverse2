@@ -52,7 +52,6 @@ export default async function PricingPage() {
             {[
               '1,000 credits per month',
               'Access to 2 automations',
-              'All 4 AI models',
               'Priority processing',
               'Email support',
             ].map((f) => (
@@ -70,10 +69,6 @@ export default async function PricingPage() {
 
         {/* Pro Plan */}
         <div className="rounded-2xl bg-black/40 backdrop-blur-sm border border-[#28B8F6]/30 p-8 fan-glow">
-          <div className="flex items-center gap-2 mb-4">
-            <Sparkles className="h-5 w-5 text-[#28B8F6]" />
-            <span className="text-sm font-medium text-[#28B8F6]">Most Popular</span>
-          </div>
           <h2 className="text-2xl font-bold mb-2">{proPlan?.name || 'Fanverse Pro'}</h2>
           <p className="text-gray-400 text-sm mb-6">2,000 credits/month + access to all workflows</p>
           <p className="text-5xl font-bold mb-1">
@@ -85,7 +80,6 @@ export default async function PricingPage() {
             {[
               '2,000 credits per month',
               'Access to all AI workflows',
-              'All 4 AI models',
               'Priority processing',
               'Email support',
             ].map((f) => (
