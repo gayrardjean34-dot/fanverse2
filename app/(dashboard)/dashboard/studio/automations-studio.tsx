@@ -85,6 +85,16 @@ const AUTOMATIONS = {
     maxQuantity: 15,
     modelFilter: 'automation-faceswap',
   },
+  'ez-face-swap-uncensored': {
+    id: 'ez-face-swap-uncensored',
+    name: 'EZ Face Swap Semi-Uncensored (beta)',
+    icon: '🚀',
+    description: 'Advanced face swap with fewer restrictions - beta version',
+    creditPerImage: 25,
+    requiresRefImage: true,
+    maxQuantity: 15,
+    modelFilter: 'automation-faceswap-uncensored',
+  },
 } as const;
 
 type AutomationId = keyof typeof AUTOMATIONS;
@@ -111,6 +121,7 @@ function getDownloadUrl(url: string): string {
 function getAutomationName(model: string): string {
   if (model === 'automation-selfie') return 'Infinite Selfies';
   if (model === 'automation-faceswap') return 'EZ Face Swap';
+  if (model === 'automation-faceswap-uncensored') return 'EZ Face Swap Semi-Uncensored (beta)';
   return 'Unknown Automation';
 }
 
@@ -329,7 +340,7 @@ export default function AutomationsStudio() {
   }
 
   const automation = AUTOMATIONS[selectedAutomation];
-  const isFaceSwap = selectedAutomation === 'face-swap';
+  const isFaceSwap = selectedAutomation === 'face-swap' || selectedAutomation === 'ez-face-swap-uncensored';
   const creditCost = isFaceSwap
     ? swapImages.length * automation.creditPerImage
     : quantity * automation.creditPerImage;

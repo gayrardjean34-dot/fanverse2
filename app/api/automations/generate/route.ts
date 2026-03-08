@@ -7,8 +7,10 @@ import crypto from 'crypto';
 
 const N8N_WEBHOOK_URL = process.env.N8N_SELFIE_WEBHOOK_URL || 'https://n8n.fanverse.lol/webhook/d069e291-644a-4377-996c-b8ef1f17109b';
 const N8N_FACESWAP_WEBHOOK_URL = process.env.N8N_FACESWAP_WEBHOOK_URL || 'https://n8n.fanverse.lol/webhook/ezfaceswapfhdkjsuhjkdfshkfjhdsdsfdfsf';
+const N8N_FACESWAP_UNCENSORED_WEBHOOK_URL = process.env.N8N_FACESWAP_UNCENSORED_WEBHOOK_URL || 'https://n8n.fanverse.lol/webhook/ezfaceswapuncensoredfhdkjsuhjkdfshkfjhdsdsfdfsf';
 const CREDIT_COST_PER_SELFIE = 22;
 const CREDIT_COST_PER_SWAP = 22;
+const CREDIT_COST_PER_SWAP_UNCENSORED = 25;
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,6 +33,10 @@ export async function POST(request: NextRequest) {
 
     if (automation === 'face-swap') {
       return handleFaceSwap(body, user);
+    }
+
+    if (automation === 'ez-face-swap-uncensored') {
+      return handleFaceSwapUncensored(body, user);
     }
 
     // ── Infinite Selfies ──
@@ -200,6 +206,85 @@ async function handleFaceSwap(body: any, user: { id: number }) {
     }),
   }).catch((err) => {
     console.error('Failed to call n8n faceswap webhook:', err);
+  });
+
+  return NextResponse.json({
+    success: true,
+    batchId,
+    generationId: insertedGens[0].id,
+    creditCost: totalCost,
+    quantity: swapUrls.length,
+  });
+}
+
+// ── Face Swap Uncensored handler ──
+async function handleFaceSwapUncensored(body: any, user: { id: number }) {
+  const refUrl = body.refUrl as string | undefined;
+  const swapUrls = body.swapUrls as string[] | undefined;
+
+  if (!refUrl) {
+    return NextResponse.json({ error: 'Reference image is required.' }, { status: 400 });
+  }
+
+  if (!swapUrls || swapUrls.length === 0) {
+    return NextResponse.json({ error: 'At least one swap image is required.' }, { status: 400 });
+  }
+
+  if (swapUrls.length > 15) {
+    return NextResponse.json({ error: 'Maximum 15 swap images allowed.' }, { status: 400 });
+  }
+
+  const totalCost = swapUrls.length * CREDIT_COST_PER_SWAP_UNCENSORED;
+
+  const balance = await getUserCreditBalance(user.id);
+  if (balance < totalCost) {
+    return NextResponse.json({
+      error: `Not enough credits. Need ${totalCost}, have ${balance}.`,
+    }, { status: 402 });
+  }
+
+  const batchId = crypto.randomUUID();
+
+  await createCreditTransaction({
+    userId: user.id,
+    amount: -totalCost,
+    type: 'spend',
+    reason: `Automation: face swap uncensored on ${swapUrls.length} image(s)`,
+  });
+
+  // Create one generation per swap image — all show as "processing"
+  const costPerImage = Math.floor(totalCost / swapUrls.length);
+  const remainder = totalCost - costPerImage * swapUrls.length;
+
+  const genValues = swapUrls.map((_, i) => ({
+    userId: user.id,
+    batchId,
+    model: 'automation-faceswap-uncensored' as const,
+    prompt: `Face swap uncensored image ${i + 1}/${swapUrls.length} from reference`,
+    aspectRatio: '1:1' as const,
+    resolution: '1K' as const,
+    referenceImages: [] as string[],
+    status: 'processing' as const,
+    creditCost: i === 0 ? costPerImage + remainder : costPerImage,
+    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+  }));
+
+  const insertedGens = await db.insert(generations).values(genValues).returning();
+
+  const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://fanverse.lol'}/api/automations/callback`;
+
+  fetch(N8N_FACESWAP_UNCENSORED_WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ref: refUrl,
+      swaps: swapUrls,
+      batchId,
+      generationId: insertedGens[0].id.toString(),
+      callbackUrl,
+    }),
+  }).catch((err) => {
+    console.error('Failed to call n8n faceswap uncensored webhook:', err);
   });
 
   return NextResponse.json({
