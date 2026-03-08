@@ -46,6 +46,11 @@ function VitrineSlideshow() {
         />
       ))}
 
+      {/* 4K badge — top left */}
+      <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#28B8F6]/15 border border-[#28B8F6]/30 backdrop-blur-sm">
+        <span className="text-[11px] font-bold text-[#28B8F6] tracking-wide">4K Quality</span>
+      </div>
+
       {/* Subtle gradient at bottom */}
       <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
 
