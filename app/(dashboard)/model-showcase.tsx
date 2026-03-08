@@ -4,21 +4,26 @@ import { useEffect, useRef, useState } from 'react';
 import { CheckCircle, Clock, Film, Image as ImageIcon } from 'lucide-react';
 import { AI_PROVIDERS, ACTIVE_PROVIDER_IDS } from '@/lib/ai/providers';
 
-// ── Vitrine images — order: 5-1-3-2-4 ────────────────────────────────────────
+// ── Vitrine images — order: 5-1-3-2 (4 removed) ──────────────────────────────
 const VITRINE_IMAGES = [
   '/images/vitrine%20(5).jpeg',
   '/images/vitrine%20(1).png',
   '/images/vitrine%20(3).png',
   '/images/vitrine%20(2).jpeg',
-  '/images/vitrine%20(4).png',
 ];
 
-const comingSoonIds = Object.keys(AI_PROVIDERS).filter(
-  (id) => !ACTIVE_PROVIDER_IDS.includes(id)
-);
-const allIds = [...ACTIVE_PROVIDER_IDS, ...comingSoonIds];
+// ── Custom model order: nano-banana-2 right below nano-banana-pro ─────────────
+const ORDERED_MODEL_IDS = [
+  'nano-banana-pro',
+  'nano-banana-2',
+  'grok-imagine',
+  'kling-3.0',
+  'kling-2.6',
+  'kling-motion-control',
+  'seedream',
+];
 
-// ── Vitrine Slideshow ─────────────────────────────────────────────────────────
+// ── Vitrine Slideshow — fills parent height ───────────────────────────────────
 function VitrineSlideshow() {
   const [current, setCurrent] = useState(0);
 
@@ -30,10 +35,7 @@ function VitrineSlideshow() {
   }, []);
 
   return (
-    <div
-      className="relative rounded-2xl overflow-hidden bg-[#111] border border-white/10 shadow-2xl shadow-black/40"
-      style={{ aspectRatio: '3/4' }}
-    >
+    <div className="relative h-full rounded-2xl overflow-hidden bg-[#111] border border-white/10 shadow-2xl shadow-black/40">
       {VITRINE_IMAGES.map((src, i) => (
         <img
           key={src}
@@ -44,7 +46,7 @@ function VitrineSlideshow() {
         />
       ))}
 
-      {/* Subtle gradient overlay at bottom */}
+      {/* Subtle gradient at bottom */}
       <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
 
       {/* Dot indicators */}
@@ -62,7 +64,7 @@ function VitrineSlideshow() {
   );
 }
 
-// ── Model Card (compact — no preview carousel) ────────────────────────────────
+// ── Model Card ────────────────────────────────────────────────────────────────
 function ModelCard({ id, isActive, index }: { id: string; isActive: boolean; index: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -71,9 +73,7 @@ function ModelCard({ id, isActive, index }: { id: string; isActive: boolean; ind
     const el = ref.current;
     if (!el) return;
     const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) { setVisible(true); observer.disconnect(); }
-      },
+      ([entry]) => { if (entry.isIntersecting) { setVisible(true); observer.disconnect(); } },
       { threshold: 0.1 }
     );
     observer.observe(el);
@@ -93,7 +93,6 @@ function ModelCard({ id, isActive, index }: { id: string; isActive: boolean; ind
       }}
     >
       <div className="flex items-center justify-between gap-3">
-        {/* Left: icon + name + type */}
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="text-xl leading-none shrink-0">{provider.icon}</span>
           <div className="min-w-0">
@@ -115,7 +114,6 @@ function ModelCard({ id, isActive, index }: { id: string; isActive: boolean; ind
           </div>
         </div>
 
-        {/* Right: status */}
         {isActive ? (
           <div className="flex items-center gap-1 text-green-400 shrink-0">
             <CheckCircle className="h-3.5 w-3.5" />
@@ -170,12 +168,12 @@ export default function ModelShowcase() {
           </p>
         </div>
 
-        {/* Two-column layout */}
-        <div className="flex flex-col lg:flex-row gap-8 items-start">
+        {/* Two-column layout with central divider */}
+        <div className="flex items-stretch gap-0">
 
-          {/* Left — model cards */}
-          <div className="flex-1 grid sm:grid-cols-2 gap-3 content-start">
-            {allIds.map((id, i) => (
+          {/* Left — single column model list */}
+          <div className="flex-1 flex flex-col gap-3">
+            {ORDERED_MODEL_IDS.map((id, i) => (
               <ModelCard
                 key={id}
                 id={id}
@@ -185,8 +183,11 @@ export default function ModelShowcase() {
             ))}
           </div>
 
-          {/* Right — vitrine slideshow */}
-          <div className="w-full lg:w-72 xl:w-80 shrink-0">
+          {/* Central divider */}
+          <div className="w-px bg-[#2a2a2a] mx-8 self-stretch" />
+
+          {/* Right — vitrine slideshow, stretches to match model column height */}
+          <div className="w-64 xl:w-72 shrink-0 self-stretch">
             <VitrineSlideshow />
           </div>
 
