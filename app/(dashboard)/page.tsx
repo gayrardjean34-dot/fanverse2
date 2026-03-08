@@ -19,17 +19,15 @@ export default function HomePage() {
               <Sparkles className="h-4 w-4" />
               AI-Powered Creative Workflows
             </div>
-            <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl px-8 py-10 mb-8">
-              <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight mb-6">
-                Create your AI Influencer with
-                <span className="block fan-gradient-text">Fanverse</span>
-              </h1>
-              <p className="text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto">
-                Scale your AI Influencer with AI automations. Generate realistic images,
-                videos, for your AI influencer, using cutting-edge models. Files metadata are cleaned,
-                and ready to post on social medias to avoid getting flagged. — all in one content creation platform.
-              </p>
-            </div>
+            <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight mb-6">
+              Create your AI Influencer with
+              <span className="block fan-gradient-text">Fanverse</span>
+            </h1>
+            <p className="text-lg sm:text-xl text-gray-400 mb-10 max-w-2xl mx-auto">
+              Scale your AI Influencer with AI automations. Generate realistic images,
+              videos, for your AI influencer, using cutting-edge models. Files metadata are cleaned,
+              and ready to post on social medias to avoid getting flagged. — all in one content creation platform.
+            </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button asChild size="lg" className="rounded-full bg-[#28B8F6] hover:bg-[#28B8F6]/80 text-[#191919] font-semibold text-lg px-8">
                 <Link href="/sign-up">
@@ -48,11 +46,9 @@ export default function HomePage() {
       {/* Features */}
       <section className="py-20 bg-transparent relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl px-8 py-6 text-center mb-16 inline-block w-full">
-            <h2 className="text-3xl font-bold">
-              Everything you need to <span className="fan-gradient-text">create</span>
-            </h2>
-          </div>
+          <h2 className="text-3xl font-bold text-center mb-16">
+            Everything you need to <span className="fan-gradient-text">create</span>
+          </h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               {

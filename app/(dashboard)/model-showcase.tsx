@@ -179,14 +179,12 @@ export default function ModelShowcase() {
           }}
           className="text-center mb-12"
         >
-          <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl px-8 py-6 inline-block w-full">
-            <h2 className="text-3xl font-bold mb-3">
-              The Latest <span className="fan-gradient-text">AI Models</span>
-            </h2>
-            <p className="text-gray-400 max-w-xl mx-auto">
-              Choose from the latest and most popular AI models for image and video generation.
-            </p>
-          </div>
+          <h2 className="text-3xl font-bold mb-3">
+            The Latest <span className="fan-gradient-text">AI Models</span>
+          </h2>
+          <p className="text-gray-400 max-w-xl mx-auto">
+            Choose from the latest and most popular AI models for image and video generation.
+          </p>
         </div>
 
         {/* Two-column layout — 1fr / divider / 1fr, line exactly centered */}
