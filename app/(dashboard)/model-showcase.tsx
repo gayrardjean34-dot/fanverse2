@@ -6,10 +6,10 @@ import { AI_PROVIDERS, ACTIVE_PROVIDER_IDS } from '@/lib/ai/providers';
 
 // ── Vitrine images — order: 5-1-3-2 (4 removed) ──────────────────────────────
 const VITRINE_IMAGES = [
-  '/images/vitrine%20(5).jpeg',
+  '/images/vitrine5.jpeg',
   '/images/vitrine%20(1).png',
-  '/images/vitrine%20(3).png',
-  '/images/vitrine%20(2).jpeg',
+  '/images/vitrine3.png',
+  '/images/vitrine2.jpeg',
 ];
 
 // ── Custom model order: nano-banana-2 right below nano-banana-pro ─────────────
