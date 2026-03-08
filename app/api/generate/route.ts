@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
 
     const batchId = crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-    const baseUrl = process.env.BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://fanverse.lol';
+    const baseUrl = (process.env.BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://fanverse.lol').replace(/\/$/, '');
     const callbackUrl = `${baseUrl}/api/generate/callback`;
     console.log('[GENERATE] baseUrl:', baseUrl, '| model:', model, '| batchSize:', batchSize, '| user:', user.id);
 

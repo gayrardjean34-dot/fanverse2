@@ -118,7 +118,35 @@ function MediaModal({
 }) {
   const [copied, setCopied] = useState(false);
   const [cleaning, setCleaning] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [translate, setTranslate] = useState({ x: 0, y: 0 });
+  const isDragging = useRef(false);
+  const dragStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
   const isVideo = gen.resultUrl ? isVideoUrl(gen.resultUrl) : false;
+
+  function handleWheel(e: React.WheelEvent) {
+    e.preventDefault();
+    setZoom((z) => Math.min(5, Math.max(1, z - e.deltaY * 0.005)));
+    if (zoom <= 1) setTranslate({ x: 0, y: 0 });
+  }
+
+  function handleMouseDown(e: React.MouseEvent) {
+    if (zoom <= 1) return;
+    isDragging.current = true;
+    dragStart.current = { x: e.clientX, y: e.clientY, tx: translate.x, ty: translate.y };
+  }
+
+  function handleMouseMove(e: React.MouseEvent) {
+    if (!isDragging.current) return;
+    setTranslate({
+      x: dragStart.current.tx + (e.clientX - dragStart.current.x),
+      y: dragStart.current.ty + (e.clientY - dragStart.current.y),
+    });
+  }
+
+  function handleMouseUp() { isDragging.current = false; }
+
+  function resetZoom() { setZoom(1); setTranslate({ x: 0, y: 0 }); }
 
   async function handleCleanDownload() {
     if (!gen.resultUrl || cleaning) return;
@@ -181,7 +209,41 @@ function MediaModal({
               className="w-full rounded-xl mb-4 max-h-[50vh] bg-black"
             />
           ) : (
-            <img src={gen.resultUrl} alt="Generated" className="w-full rounded-xl mb-4 max-h-[50vh] object-contain bg-black" />
+            <div
+              className="relative w-full rounded-xl mb-4 overflow-hidden bg-black"
+              style={{ maxHeight: '50vh', cursor: zoom > 1 ? (isDragging.current ? 'grabbing' : 'grab') : 'zoom-in' }}
+              onWheel={handleWheel}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              onDoubleClick={resetZoom}
+            >
+              <img
+                src={gen.resultUrl}
+                alt="Generated"
+                draggable={false}
+                className="w-full object-contain select-none"
+                style={{
+                  transform: `scale(${zoom}) translate(${translate.x / zoom}px, ${translate.y / zoom}px)`,
+                  transition: isDragging.current ? 'none' : 'transform 0.15s ease',
+                  maxHeight: '50vh',
+                }}
+              />
+              {zoom > 1 && (
+                <button
+                  onClick={resetZoom}
+                  className="absolute top-2 right-2 text-xs px-2 py-1 rounded bg-black/60 text-white hover:bg-black/80"
+                >
+                  Reset ({Math.round(zoom * 100)}%)
+                </button>
+              )}
+              {zoom === 1 && (
+                <div className="absolute bottom-2 right-2 text-xs px-2 py-1 rounded bg-black/50 text-white/60 pointer-events-none">
+                  Scroll to zoom · Double-click to reset
+                </div>
+              )}
+            </div>
           )
         )}
 
