@@ -23,7 +23,7 @@ const ORDERED_MODEL_IDS = [
   'seedream',
 ];
 
-// ── Vitrine Slideshow — fills parent height ───────────────────────────────────
+// ── Vitrine Slideshow — 3:4 aspect ratio, no cropping ────────────────────────
 function VitrineSlideshow() {
   const [current, setCurrent] = useState(0);
 
@@ -35,7 +35,10 @@ function VitrineSlideshow() {
   }, []);
 
   return (
-    <div className="relative h-full rounded-2xl overflow-hidden bg-[#111] border border-white/10 shadow-2xl shadow-black/40">
+    <div
+      className="relative w-full rounded-2xl overflow-hidden bg-[#111] border border-white/10 shadow-2xl shadow-black/40"
+      style={{ aspectRatio: '3/4' }}
+    >
       {VITRINE_IMAGES.map((src, i) => (
         <img
           key={src}
@@ -46,9 +49,12 @@ function VitrineSlideshow() {
         />
       ))}
 
-      {/* 4K badge — top left */}
-      <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#28B8F6]/15 border border-[#28B8F6]/30 backdrop-blur-sm">
-        <span className="text-[11px] font-bold text-[#28B8F6] tracking-wide">4K Quality</span>
+      {/* 4K Quality badge — top left, Fanverse gradient at 75% opacity */}
+      <div
+        className="absolute top-3 left-3 z-10 flex items-center px-2.5 py-1 rounded-lg backdrop-blur-sm"
+        style={{ background: 'linear-gradient(135deg, rgba(40,184,246,0.75) 0%, rgba(127,109,231,0.75) 50%, rgba(211,36,217,0.75) 100%)' }}
+      >
+        <span className="text-[11px] font-bold text-white tracking-wide">4K Quality</span>
       </div>
 
       {/* Subtle gradient at bottom */}
@@ -173,11 +179,13 @@ export default function ModelShowcase() {
           </p>
         </div>
 
-        {/* Two-column layout with central divider */}
-        <div className="flex items-stretch gap-0">
-
+        {/* Two-column layout — 1fr / divider / 1fr, line exactly centered */}
+        <div
+          className="items-start"
+          style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr', gap: '0 2rem' }}
+        >
           {/* Left — single column model list */}
-          <div className="flex-1 flex flex-col gap-3">
+          <div className="flex flex-col gap-3">
             {ORDERED_MODEL_IDS.map((id, i) => (
               <ModelCard
                 key={id}
@@ -188,11 +196,11 @@ export default function ModelShowcase() {
             ))}
           </div>
 
-          {/* Central divider */}
-          <div className="w-px bg-[#2a2a2a] mx-8 self-stretch" />
+          {/* Central divider — full height of grid row */}
+          <div className="bg-[#2a2a2a] self-stretch" />
 
-          {/* Right — vitrine slideshow, stretches to match model column height */}
-          <div className="w-64 xl:w-72 shrink-0 self-stretch">
+          {/* Right — 3:4 vitrine slideshow */}
+          <div>
             <VitrineSlideshow />
           </div>
 
