@@ -31,6 +31,46 @@ import { AI_PROVIDERS, ACTIVE_PROVIDER_IDS, type ModelConfig } from '@/lib/ai/pr
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
+type RefImg = string | { file: File; preview: string };
+
+// Compress image before upload to stay under 4.5MB limit
+function compressImage(file: File, maxWidth = 2048, quality = 0.85): Promise<File> {
+  return new Promise((resolve, reject) => {
+    if (file.size < 2 * 1024 * 1024) { resolve(file); return; }
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement('canvas');
+      let { width, height } = img;
+      if (width > maxWidth) { height = (height * maxWidth) / width; width = maxWidth; }
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { reject(new Error('Canvas not supported')); return; }
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) { reject(new Error('Compression failed')); return; }
+          resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+        },
+        'image/jpeg', quality
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Failed to load image')); };
+    img.src = url;
+  });
+}
+
+async function uploadRefImage(file: File): Promise<string> {
+  const compressed = await compressImage(file);
+  const fd = new FormData();
+  fd.append('file', compressed);
+  const res = await fetch('/api/upload', { method: 'POST', body: fd });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Upload failed');
+  return data.url;
+}
+
 type Generation = {
   id: number;
   batchId: string;
@@ -344,7 +384,6 @@ export default function ModelsStudio({
   const [topP, setTopP] = useState<string>('');
   const [topK, setTopK] = useState<string>('');
   const [batchSize, setBatchSize] = useState(1);
-  type RefImg = string | { file: File; preview: string };
   const [referenceImages, setReferenceImages] = useState<RefImg[]>([]);
   const [generating, setGenerating] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -520,16 +559,11 @@ export default function ModelsStudio({
     if (isMotionControl && !referenceVideo) return;
     setGenerating(true);
     try {
-      // Upload any file-based reference images to Vercel Blob (avoids 413 from base64 in body)
+      // Upload file-based ref images via FormData → /api/upload (same as automations)
       const uploadedRefs = await Promise.all(
-        referenceImages.map(async (img) => {
-          if (typeof img === 'string') return img;
-          const blob = await upload(img.file.name, img.file, {
-            access: 'public',
-            handleUploadUrl: '/api/upload',
-          });
-          return blob.url;
-        })
+        referenceImages.map((img) =>
+          typeof img === 'string' ? img : uploadRefImage(img.file)
+        )
       );
 
       const payload: Record<string, any> = {
