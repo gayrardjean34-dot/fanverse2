@@ -11,6 +11,7 @@ export type ModelConfig = {
   supportsSound?: boolean;
   supportsMode?: boolean;
   supportsElements?: boolean;
+  requiresReferenceVideo?: boolean;
   defaultDuration?: string;
   durations?: string[];
   modes?: string[];
@@ -118,6 +119,24 @@ export const AI_PROVIDERS: Record<string, ModelConfig> = {
     resolutions: ['1K', '2K', '4K'],
     getCreditCost: ({ resolution }) => resolution === '4K' ? 25 : 20,
   },
+  'kling-motion-control': {
+    name: 'Kling Motion Control',
+    envKey: 'KIE_API_KEY',
+    description: 'Animate an image by transferring motion from a reference video. Upload an image and an mp4 video to drive the movement.',
+    icon: '🎭',
+    type: 'video',
+    apiModel: 'kling-2.6/motion-control',
+    requiresReferenceVideo: true,
+    supportsDuration: true,
+    durations: ['5', '10'],
+    defaultDuration: '5',
+    resolutions: ['720p', '1080p'],
+    getCreditCost: ({ duration, resolution }) => {
+      const d = parseInt(duration || '5');
+      const is1080 = resolution === '1080p';
+      return d * (is1080 ? 9 : 6);
+    },
+  },
 } as const;
 
 export type ProviderId = keyof typeof AI_PROVIDERS;
@@ -126,6 +145,9 @@ export const PROVIDER_IDS = Object.keys(AI_PROVIDERS) as ProviderId[];
 
 // Only active (non-coming-soon) providers
 export const ACTIVE_PROVIDER_IDS = PROVIDER_IDS.filter((id) => id !== 'seedream');
+
+// Providers that require a reference video input
+export const MOTION_CONTROL_IDS = PROVIDER_IDS.filter((id) => AI_PROVIDERS[id].requiresReferenceVideo);
 
 export function isValidProvider(id: string): id is ProviderId {
   return id in AI_PROVIDERS;
