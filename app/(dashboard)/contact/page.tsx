@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Send, CheckCircle } from 'lucide-react';
+import { Loader2, Send, CheckCircle, MessageSquareHeart } from 'lucide-react';
 import Link from 'next/link';
 
 const DISCORD_INVITE = 'https://discord.gg/bn6DFKwY';
@@ -16,6 +16,39 @@ export default function ContactPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+
+  // Feedback state
+  const [feedback, setFeedback] = useState('');
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackSuccess, setFeedbackSuccess] = useState(false);
+  const [feedbackError, setFeedbackError] = useState('');
+
+  async function handleFeedbackSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!feedback.trim()) {
+      setFeedbackError('Please write something before submitting.');
+      return;
+    }
+    setFeedbackLoading(true);
+    setFeedbackError('');
+    try {
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feedback }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setFeedbackError(data.error || 'Failed to send feedback.');
+      } else {
+        setFeedbackSuccess(true);
+      }
+    } catch {
+      setFeedbackError('Something went wrong. Please try again.');
+    } finally {
+      setFeedbackLoading(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -118,6 +151,59 @@ export default function ContactPage() {
             </Button>
           </form>
         )}
+
+        {/* ── Feedback Section ── */}
+        <div className="mt-16 pt-10 border-t border-[#333]">
+          <div className="flex items-center gap-3 mb-2">
+            <MessageSquareHeart className="h-5 w-5 text-[#7F6DE7]" />
+            <h2 className="text-xl font-bold">Share your feedback</h2>
+          </div>
+          <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+            Your feedback genuinely shapes what we build next. Whether it&apos;s a feature idea, a rough
+            edge you noticed, or just a vibe — we read everything and take it seriously.
+            <span className="text-gray-500 block mt-1">Limited to 1 feedback per day.</span>
+          </p>
+
+          {feedbackSuccess ? (
+            <div className="text-center py-10 rounded-xl bg-[#7F6DE7]/5 border border-[#7F6DE7]/20">
+              <CheckCircle className="h-12 w-12 text-[#7F6DE7] mx-auto mb-3" />
+              <h3 className="text-lg font-semibold mb-1">Thank you!</h3>
+              <p className="text-gray-400 text-sm">Your feedback has been received. We truly appreciate it.</p>
+              <Button
+                onClick={() => { setFeedbackSuccess(false); setFeedback(''); }}
+                variant="outline"
+                className="mt-5 border-[#7F6DE7]/40 text-[#7F6DE7] hover:bg-[#7F6DE7]/10"
+              >
+                Send another
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handleFeedbackSubmit} className="space-y-4">
+              <textarea
+                className="w-full bg-[#222] border border-[#333] text-[#FEFEFE] rounded-xl p-4 text-sm min-h-[120px] focus:border-[#7F6DE7]/50 outline-none transition-colors resize-none placeholder-gray-600"
+                placeholder="Tell us what you think — what you love, what could be better, what you'd love to see..."
+                value={feedback}
+                onChange={(e) => setFeedback(e.target.value)}
+                maxLength={2000}
+              />
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-600">{feedback.length}/2000</span>
+                {feedbackError && <p className="text-red-400 text-sm">{feedbackError}</p>}
+              </div>
+              <Button
+                type="submit"
+                disabled={feedbackLoading || !feedback.trim()}
+                className="w-full bg-[#7F6DE7] hover:bg-[#7F6DE7]/80 text-white font-semibold"
+              >
+                {feedbackLoading ? (
+                  <><Loader2 className="animate-spin mr-2 h-4 w-4" />Sending...</>
+                ) : (
+                  <><Send className="mr-2 h-4 w-4" />Send Feedback</>
+                )}
+              </Button>
+            </form>
+          )}
+        </div>
 
         {/* Discord section */}
         <div className="mt-16 pt-8 border-t border-[#333] text-center">
