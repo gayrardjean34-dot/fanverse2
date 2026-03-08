@@ -97,7 +97,9 @@ export async function POST(request: NextRequest) {
 
     const batchId = crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-    const callbackUrl = `${process.env.BASE_URL}/api/generate/callback`;
+    const baseUrl = process.env.BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://fanverse.lol';
+    const callbackUrl = `${baseUrl}/api/generate/callback`;
+    console.log('[GENERATE] baseUrl:', baseUrl, '| model:', model, '| batchSize:', batchSize, '| user:', user.id);
 
     // Create all generation records
     const genRecords = [];
@@ -190,6 +192,13 @@ export async function POST(request: NextRequest) {
     const apiPromises = genRecords.map(async (gen) => {
       try {
         const inputPayload = buildInputPayload();
+        const kiePayload = {
+          model: providerConfig.apiModel,
+          callBackUrl: `${callbackUrl}?genId=${gen.id}`,
+          input: inputPayload,
+        };
+
+        console.log('[GENERATE] → kie.ai gen', gen.id, '| apiModel:', providerConfig.apiModel, '| callbackUrl:', kiePayload.callBackUrl, '| input:', JSON.stringify(inputPayload));
 
         const res = await fetch(KIE_API_URL, {
           method: 'POST',
@@ -197,24 +206,26 @@ export async function POST(request: NextRequest) {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${apiKey}`,
           },
-          body: JSON.stringify({
-            model: providerConfig.apiModel,
-            callBackUrl: `${callbackUrl}?genId=${gen.id}`,
-            input: inputPayload,
-          }),
+          body: JSON.stringify(kiePayload),
         });
 
-        const data = await res.json();
-        console.log('[GENERATE]', model, 'gen', gen.id, ':', JSON.stringify(data));
+        const rawText = await res.text();
+        let data: any;
+        try { data = JSON.parse(rawText); } catch { data = { raw: rawText }; }
+
+        console.log('[GENERATE] ← kie.ai gen', gen.id, 'status', res.status, ':', JSON.stringify(data));
 
         if (!res.ok) {
+          const errMsg = data.message || data.error || data.msg || `kie.ai ${res.status}`;
+          console.error('[GENERATE] FAILED gen', gen.id, ':', errMsg);
           await db.update(generations)
-            .set({ status: 'failed', error: data.message || data.error || 'API error', resultData: data, updatedAt: new Date() })
+            .set({ status: 'failed', error: errMsg, resultData: data, updatedAt: new Date() })
             .where(eq(generations.id, gen.id));
-          return { id: gen.id, status: 'failed' as const, error: data.message || data.error };
+          return { id: gen.id, status: 'failed' as const, error: errMsg };
         }
 
         const taskId = data.taskId || data.id || data.job_id || data.data?.taskId || data.data?.id || null;
+        console.log('[GENERATE] taskId for gen', gen.id, ':', taskId);
         await db.update(generations)
           .set({
             status: 'processing',
