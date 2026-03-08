@@ -344,7 +344,8 @@ export default function ModelsStudio({
   const [topP, setTopP] = useState<string>('');
   const [topK, setTopK] = useState<string>('');
   const [batchSize, setBatchSize] = useState(1);
-  const [referenceImages, setReferenceImages] = useState<string[]>([]);
+  type RefImg = string | { file: File; preview: string };
+  const [referenceImages, setReferenceImages] = useState<RefImg[]>([]);
   const [generating, setGenerating] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [selectedGen, setSelectedGen] = useState<Generation | null>(null);
@@ -451,11 +452,8 @@ export default function ModelsStudio({
     if (!files) return;
     const remaining = 10 - referenceImages.length;
     Array.from(files).slice(0, remaining).forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setReferenceImages((prev) => prev.length >= 10 ? prev : [...prev, reader.result as string]);
-      };
-      reader.readAsDataURL(file);
+      const preview = URL.createObjectURL(file);
+      setReferenceImages((prev) => prev.length >= 10 ? prev : [...prev, { file, preview }]);
     });
     e.target.value = '';
   }, [referenceImages.length]);
@@ -466,7 +464,11 @@ export default function ModelsStudio({
   }, [referenceImages.length]);
 
   const removeReference = useCallback((index: number) => {
-    setReferenceImages((prev) => prev.filter((_, i) => i !== index));
+    setReferenceImages((prev) => {
+      const img = prev[index];
+      if (typeof img !== 'string') URL.revokeObjectURL(img.preview);
+      return prev.filter((_, i) => i !== index);
+    });
   }, []);
 
   const handleRecreate = useCallback((gen: Generation) => {
@@ -518,12 +520,24 @@ export default function ModelsStudio({
     if (isMotionControl && !referenceVideo) return;
     setGenerating(true);
     try {
+      // Upload any file-based reference images to Vercel Blob (avoids 413 from base64 in body)
+      const uploadedRefs = await Promise.all(
+        referenceImages.map(async (img) => {
+          if (typeof img === 'string') return img;
+          const blob = await upload(img.file.name, img.file, {
+            access: 'public',
+            handleUploadUrl: '/api/upload',
+          });
+          return blob.url;
+        })
+      );
+
       const payload: Record<string, any> = {
         model,
         prompt: prompt.trim(),
         systemPrompt: systemPrompt.trim() || undefined,
         aspectRatio,
-        referenceImages,
+        referenceImages: uploadedRefs,
         batchSize,
       };
 
@@ -622,7 +636,7 @@ export default function ModelsStudio({
           <div className="flex gap-3 mb-3 overflow-x-auto pb-2">
             {referenceImages.map((img, i) => (
               <div key={i} className="relative shrink-0 w-16 h-16">
-                <img src={img} alt="" className="w-full h-full object-cover rounded-lg border border-[#333]" />
+                <img src={typeof img === 'string' ? img : img.preview} alt="" className="w-full h-full object-cover rounded-lg border border-[#333]" />
                 <button onClick={() => removeReference(i)}
                   className="absolute -top-2 -right-2 bg-red-500 rounded-full w-5 h-5 flex items-center justify-center shadow-lg z-10">
                   <X className="h-3 w-3 text-white" />
