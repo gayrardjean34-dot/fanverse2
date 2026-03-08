@@ -26,10 +26,10 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
           <Link href="/">
-            <img src="/images/logo-header.png" alt="Fanverse" className="h-14 object-contain hover:opacity-80 transition-opacity" />
+            <img src="/images/logo-header.png" alt="Fanverse" className="h-36 object-contain hover:opacity-80 transition-opacity" />
           </Link>
         </div>
-        <h2 className="mt-3 text-center text-2xl font-bold text-[#FEFEFE]">
+        <h2 className="mt-6 text-center text-2xl font-bold text-[#FEFEFE]">
           {mode === 'signin'
             ? 'Sign in to your account'
             : 'Create your account'}
