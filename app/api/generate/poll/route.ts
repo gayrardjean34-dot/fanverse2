@@ -4,7 +4,7 @@ import { db } from '@/lib/db/drizzle';
 import { generations } from '@/lib/db/schema';
 import { getUser, createCreditTransaction } from '@/lib/db/queries';
 
-const GENERATION_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+const GENERATION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 // This endpoint checks for stuck "processing" generations and tries to poll kie.ai
 export async function POST(request: NextRequest) {
@@ -83,6 +83,7 @@ export async function POST(request: NextRequest) {
     let timedOut = 0;
     for (const gen of stuckGens) {
       if (new Date(gen.createdAt) < cutoff && (gen.status === 'pending' || gen.status === 'processing')) {
+        console.error('[POLL] TIMEOUT gen', gen.id, 'model:', gen.model, 'taskId:', gen.externalTaskId, '| refunding', gen.creditCost, 'credits to user', user.id);
         await db.update(generations)
           .set({
             status: 'failed',
