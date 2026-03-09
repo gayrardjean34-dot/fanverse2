@@ -49,7 +49,7 @@ function ModelItem({
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left relative group transition-all duration-200 ${
+      className={`w-full text-left relative group transition-all duration-200 cursor-pointer ${
         isSelected
           ? 'bg-gradient-to-r from-[#28B8F6]/12 via-[#28B8F6]/5 to-transparent border-l-2 border-[#28B8F6]'
           : 'border-l-2 border-transparent hover:bg-[#1d1d1d] hover:border-[#28B8F6]/25'
@@ -95,7 +95,7 @@ function AutomationItem({
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left relative group transition-all duration-200 ${
+      className={`w-full text-left relative group transition-all duration-200 cursor-pointer ${
         isSelected
           ? 'bg-gradient-to-r from-[#7F6DE7]/12 via-[#7F6DE7]/5 to-transparent border-l-2 border-[#7F6DE7]'
           : 'border-l-2 border-transparent hover:bg-[#1d1d1d] hover:border-[#7F6DE7]/25'
@@ -143,7 +143,7 @@ export default function StudioPage() {
         <div>
           <button
             onClick={() => setModelsExpanded((v) => !v)}
-            className="w-full flex items-center justify-between px-5 py-4 group transition-colors hover:bg-[#1d1d1d]"
+            className="w-full flex items-center justify-between px-5 py-4 group transition-colors hover:bg-[#1d1d1d] cursor-pointer"
           >
             <span className="flex items-center gap-3">
               <span
@@ -154,10 +154,10 @@ export default function StudioPage() {
                 }`}
               />
               <span
-                className={`text-[11px] font-bold tracking-[0.18em] uppercase transition-colors duration-200 ${
+                className={`text-[13px] font-bold tracking-[0.15em] uppercase transition-colors duration-200 ${
                   activeSection === 'models'
                     ? 'text-[#28B8F6]'
-                    : 'text-gray-400 group-hover:text-gray-200'
+                    : 'text-gray-200 group-hover:text-white'
                 }`}
               >
                 Models
@@ -208,7 +208,7 @@ export default function StudioPage() {
         <div>
           <button
             onClick={() => setAutomationsExpanded((v) => !v)}
-            className="w-full flex items-center justify-between px-5 py-4 group transition-colors hover:bg-[#1d1d1d]"
+            className="w-full flex items-center justify-between px-5 py-4 group transition-colors hover:bg-[#1d1d1d] cursor-pointer"
           >
             <span className="flex items-center gap-3">
               <span
@@ -219,10 +219,10 @@ export default function StudioPage() {
                 }`}
               />
               <span
-                className={`text-[11px] font-bold tracking-[0.18em] uppercase transition-colors duration-200 ${
+                className={`text-[13px] font-bold tracking-[0.15em] uppercase transition-colors duration-200 ${
                   activeSection === 'automations'
                     ? 'text-[#7F6DE7]'
-                    : 'text-gray-400 group-hover:text-gray-200'
+                    : 'text-gray-200 group-hover:text-white'
                 }`}
               >
                 Automations

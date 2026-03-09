@@ -27,6 +27,11 @@ type UserData = {
   freeUnlockUsed?: boolean;
 };
 
+type TeamData = {
+  subscriptionStatus?: string | null;
+  planName?: string | null;
+};
+
 // Compress image client-side to stay under Vercel's 4.5MB limit
 function compressImage(file: File, maxWidth = 2048, quality = 0.85): Promise<File> {
   return new Promise((resolve, reject) => {
@@ -317,10 +322,12 @@ export default function AutomationsStudio({
   const swapsInputRef = useRef<HTMLInputElement>(null);
 
   const { data: userData, mutate: mutateUser } = useSWR<UserData>('/api/user', fetcher);
+  const { data: teamData } = useSWR<TeamData>('/api/team', fetcher);
   const unlockedAutomations = userData?.unlockedAutomations || [];
   const freeUnlockUsed = userData?.freeUnlockUsed ?? true;
 
-  const isAutomationUnlocked = (id: string) => unlockedAutomations.includes(id);
+  const hasActivePlan = teamData?.subscriptionStatus === 'active' || teamData?.subscriptionStatus === 'trialing';
+  const isAutomationUnlocked = (id: string) => hasActivePlan || unlockedAutomations.includes(id);
 
   async function handleFreeUnlock(automationId: string) {
     if (unlocking) return;
