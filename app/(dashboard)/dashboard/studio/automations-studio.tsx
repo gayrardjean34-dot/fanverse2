@@ -106,7 +106,7 @@ const AUTOMATIONS = {
     name: 'Outfit Swap',
     icon: '👗',
     description: 'Swap the outfit of a person using a clothes image or a text prompt',
-    creditPerImage: 22,
+    creditPerImage: 15,
     requiresRefImage: true,
     maxQuantity: 1,
     modelFilter: 'automation-outfit-swap',
@@ -927,7 +927,7 @@ export default function AutomationsStudio({
             <Button
               onClick={handleGenerate}
               disabled={generating || uploading || !canGenerate}
-              className="h-12 px-6 bg-[#7F6DE7] hover:bg-[#7F6DE7]/80 text-white font-semibold rounded-xl disabled:opacity-50"
+              className="h-12 px-6 bg-[#7F6DE7] hover:bg-[#7F6DE7]/80 text-white font-semibold rounded-xl disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
             >
               {uploading ? (
                 <span className="flex items-center gap-2">

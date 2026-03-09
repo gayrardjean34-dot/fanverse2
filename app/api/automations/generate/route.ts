@@ -12,7 +12,7 @@ const N8N_OUTFIT_SWAP_WEBHOOK_URL = process.env.N8N_OUTFIT_SWAP_WEBHOOK_URL || '
 const CREDIT_COST_PER_SELFIE = 22;
 const CREDIT_COST_PER_SWAP = 22;
 const CREDIT_COST_PER_SWAP_UNCENSORED = 25;
-const CREDIT_COST_OUTFIT_SWAP = 22;
+const CREDIT_COST_OUTFIT_SWAP = 15;
 
 export async function POST(request: NextRequest) {
   try {
