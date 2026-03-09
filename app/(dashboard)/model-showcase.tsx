@@ -230,7 +230,7 @@ export default function ModelShowcase() {
             Unique <span className="fan-gradient-text">automations</span> built for scaling content creation
           </h2>
           <p className="text-gray-400 max-w-xl mx-auto">
-            One-click workflows that generate, swap, and style — ready to post.
+            One-click workflows that generate infinite amount of content, ready to post!
           </p>
         </div>
 
