@@ -4,80 +4,90 @@ import { useEffect, useRef, useState } from 'react';
 import { CheckCircle, Clock, Film, Image as ImageIcon } from 'lucide-react';
 import { AI_PROVIDERS, ACTIVE_PROVIDER_IDS } from '@/lib/ai/providers';
 
-// ── Vitrine images — order: 5-1-3-2 (4 removed) ──────────────────────────────
-const VITRINE_IMAGES = [
-  '/images/vitrine5.jpeg',
-  '/images/vitrine%20(1).png',
-  '/images/vitrine3.png',
-  '/images/vitrine2.jpeg',
+// ── Vitrine items with per-photo captions ─────────────────────────────────────
+const VITRINE_ITEMS = [
+  { src: '/images/vitrine5.jpeg',       caption: 'Made with Infinite Re-pose automation' },
+  { src: '/images/vitrine%20(1).png',   caption: 'Made with EZ Face Swap automation' },
+  { src: '/images/vitrine3.png',        caption: 'Made with Infinite selfies automation' },
+  { src: '/images/vitrine2.jpeg',       caption: 'Made with Infinite Carousel automation' },
+  { src: '/images/vitrine6.jpeg',       caption: 'Made with Outfit Swap automation' },
 ];
 
-// ── Custom model order: nano-banana-2 right below nano-banana-pro ─────────────
-const ORDERED_MODEL_IDS = [
-  'nano-banana-pro',
-  'nano-banana-2',
-  'grok-imagine',
-  'kling-3.0',
-  'kling-2.6',
-  'kling-motion-control',
-  'seedream',
-];
+const GRADIENT = 'linear-gradient(135deg, rgba(40,184,246,0.85) 0%, rgba(127,109,231,0.85) 50%, rgba(211,36,217,0.85) 100%)';
 
-// ── Vitrine Slideshow — 3:4 aspect ratio, no cropping ────────────────────────
+// ── Model groups ──────────────────────────────────────────────────────────────
+const LEFT_MODEL_IDS  = ['nano-banana-pro', 'nano-banana-2', 'grok-imagine'];
+const CENTER_MODEL_ID = 'seedream';
+const RIGHT_MODEL_IDS = ['kling-3.0', 'kling-2.6', 'kling-motion-control'];
+
+// ── Vitrine Slideshow ─────────────────────────────────────────────────────────
 function VitrineSlideshow() {
   const [current, setCurrent] = useState(0);
+  const [captionVisible, setCaptionVisible] = useState(true);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrent((c) => (c + 1) % VITRINE_IMAGES.length);
+      setCaptionVisible(false);
+      setTimeout(() => {
+        setCurrent((c) => (c + 1) % VITRINE_ITEMS.length);
+        setCaptionVisible(true);
+      }, 350);
     }, 4000);
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div
-      className="relative w-full rounded-2xl overflow-hidden bg-[#111] border border-white/10 shadow-2xl shadow-black/40"
-      style={{ aspectRatio: '3/4' }}
-    >
-      {VITRINE_IMAGES.map((src, i) => (
-        <img
-          key={src}
-          src={src}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out"
-          style={{ opacity: i === current ? 1 : 0 }}
-        />
-      ))}
-
-      {/* 4K Quality badge — top left */}
+    <div className="relative mt-8">
+      {/* Dynamic caption badge — peeks above the photo */}
       <div
-        className="absolute top-3 left-3 z-10 flex items-center px-2.5 py-1 rounded-lg backdrop-blur-sm"
-        style={{ background: 'linear-gradient(135deg, rgba(40,184,246,0.75) 0%, rgba(127,109,231,0.75) 50%, rgba(211,36,217,0.75) 100%)' }}
+        className="absolute -top-5 left-1/2 -translate-x-1/2 z-20 px-4 py-2 rounded-xl whitespace-nowrap shadow-lg"
+        style={{
+          background: GRADIENT,
+          opacity: captionVisible ? 1 : 0,
+          transform: captionVisible ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(4px)',
+          transition: 'opacity 0.35s ease, transform 0.35s ease',
+        }}
       >
-        <span className="text-[11px] font-bold text-white tracking-wide">4K Quality</span>
+        <span className="text-sm font-bold text-white tracking-wide">{VITRINE_ITEMS[current].caption}</span>
       </div>
 
-      {/* Pictures from our automations badge — top center */}
+      {/* Photo container */}
       <div
-        className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center px-2.5 py-1 rounded-lg backdrop-blur-sm whitespace-nowrap"
-        style={{ background: 'linear-gradient(135deg, rgba(40,184,246,0.75) 0%, rgba(127,109,231,0.75) 50%, rgba(211,36,217,0.75) 100%)' }}
+        className="relative w-full rounded-2xl overflow-hidden bg-[#111] border border-white/10 shadow-2xl shadow-black/40"
+        style={{ aspectRatio: '3/4' }}
       >
-        <span className="text-[11px] font-bold text-white tracking-wide">Pictures from our automations</span>
-      </div>
-
-      {/* Subtle gradient at bottom */}
-      <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
-
-      {/* Dot indicators */}
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-        {VITRINE_IMAGES.map((_, i) => (
-          <div
-            key={i}
-            className={`rounded-full transition-all duration-300 ${
-              i === current ? 'w-4 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/35'
-            }`}
+        {VITRINE_ITEMS.map((item, i) => (
+          <img
+            key={item.src}
+            src={item.src}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out"
+            style={{ opacity: i === current ? 1 : 0 }}
           />
         ))}
+
+        {/* Up to 4K Quality badge — top left */}
+        <div
+          className="absolute top-3 left-3 z-10 flex items-center px-2.5 py-1 rounded-lg backdrop-blur-sm"
+          style={{ background: GRADIENT }}
+        >
+          <span className="text-[11px] font-bold text-white tracking-wide">Up to 4k Quality</span>
+        </div>
+
+        {/* Subtle gradient at bottom */}
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
+
+        {/* Dot indicators */}
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+          {VITRINE_ITEMS.map((_, i) => (
+            <div
+              key={i}
+              className={`rounded-full transition-all duration-300 ${
+                i === current ? 'w-4 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/35'
+              }`}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -151,34 +161,37 @@ function ModelCard({ id, isActive, index }: { id: string; isActive: boolean; ind
 
 // ── Main Section ──────────────────────────────────────────────────────────────
 export default function ModelShowcase() {
-  const titleRef = useRef<HTMLDivElement>(null);
-  const [titleVisible, setTitleVisible] = useState(false);
+  const modelsRef = useRef<HTMLDivElement>(null);
+  const autoRef   = useRef<HTMLDivElement>(null);
+  const [modelsVisible, setModelsVisible] = useState(false);
+  const [autoVisible,   setAutoVisible]   = useState(false);
 
   useEffect(() => {
-    const el = titleRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setTitleVisible(true); observer.disconnect(); } },
-      { threshold: 0.2 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
+    function observe(el: HTMLElement | null, set: (v: boolean) => void) {
+      if (!el) return;
+      const obs = new IntersectionObserver(
+        ([entry]) => { if (entry.isIntersecting) { set(true); obs.disconnect(); } },
+        { threshold: 0.2 }
+      );
+      obs.observe(el);
+      return () => obs.disconnect();
+    }
+    observe(modelsRef.current, setModelsVisible);
+    observe(autoRef.current,   setAutoVisible);
   }, []);
+
+  const fadeStyle = (visible: boolean) => ({
+    opacity: visible ? 1 : 0,
+    transform: visible ? 'translateY(0)' : 'translateY(20px)',
+    transition: 'opacity 0.6s ease, transform 0.6s ease',
+  });
 
   return (
     <section className="py-20 bg-transparent relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* Title */}
-        <div
-          ref={titleRef}
-          style={{
-            opacity: titleVisible ? 1 : 0,
-            transform: titleVisible ? 'translateY(0)' : 'translateY(20px)',
-            transition: 'opacity 0.6s ease, transform 0.6s ease',
-          }}
-          className="text-center mb-12"
-        >
+        {/* ── Models block ── */}
+        <div ref={modelsRef} style={fadeStyle(modelsVisible)} className="text-center mb-10">
           <h2 className="text-3xl font-bold mb-3">
             The Latest <span className="fan-gradient-text">AI Models</span>
           </h2>
@@ -187,32 +200,45 @@ export default function ModelShowcase() {
           </p>
         </div>
 
-        {/* Two-column layout — 1fr / divider / 1fr, line exactly centered */}
-        <div
-          className="items-start"
-          style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr', gap: '0 2rem' }}
-        >
-          {/* Left — single column model list */}
+        {/* 3-column symmetric grid: left (3) | center (1) | right (3) */}
+        <div className="grid grid-cols-3 gap-4 mb-24">
+          {/* Left column */}
           <div className="flex flex-col gap-3">
-            {ORDERED_MODEL_IDS.map((id, i) => (
-              <ModelCard
-                key={id}
-                id={id}
-                isActive={ACTIVE_PROVIDER_IDS.includes(id)}
-                index={i}
-              />
+            {LEFT_MODEL_IDS.map((id, i) => (
+              <ModelCard key={id} id={id} isActive={ACTIVE_PROVIDER_IDS.includes(id)} index={i} />
             ))}
           </div>
 
-          {/* Central divider — full height of grid row */}
-          <div className="bg-[#2a2a2a] self-stretch" />
-
-          {/* Right — 3:4 vitrine slideshow */}
-          <div>
-            <VitrineSlideshow />
+          {/* Center — single card, vertically centered */}
+          <div className="flex items-center justify-center">
+            <div className="w-full">
+              <ModelCard id={CENTER_MODEL_ID} isActive={ACTIVE_PROVIDER_IDS.includes(CENTER_MODEL_ID)} index={3} />
+            </div>
           </div>
 
+          {/* Right column */}
+          <div className="flex flex-col gap-3">
+            {RIGHT_MODEL_IDS.map((id, i) => (
+              <ModelCard key={id} id={id} isActive={ACTIVE_PROVIDER_IDS.includes(id)} index={i + 4} />
+            ))}
+          </div>
         </div>
+
+        {/* ── Automations block ── */}
+        <div ref={autoRef} style={fadeStyle(autoVisible)} className="text-center mb-12">
+          <h2 className="text-3xl font-bold mb-3">
+            Unique <span className="fan-gradient-text">automations</span> built for scaling content creation
+          </h2>
+          <p className="text-gray-400 max-w-xl mx-auto">
+            One-click workflows that generate, swap, and style — ready to post.
+          </p>
+        </div>
+
+        {/* Slideshow — centered, max width constrained */}
+        <div className="max-w-xs mx-auto">
+          <VitrineSlideshow />
+        </div>
+
       </div>
     </section>
   );
