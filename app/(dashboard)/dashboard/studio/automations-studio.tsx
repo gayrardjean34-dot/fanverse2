@@ -537,9 +537,9 @@ export default function AutomationsStudio({
   }
 
   const isLocked = !isAutomationUnlocked(selectedAutomation);
-  const canGenerate = !isLocked && (isFaceSwap
+  const canGenerate = isFaceSwap
     ? referenceImage && swapImages.length > 0
-    : referenceImage);
+    : referenceImage;
 
   return (
     <>
