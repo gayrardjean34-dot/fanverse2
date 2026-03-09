@@ -12,6 +12,7 @@ export type ModelConfig = {
   supportsMode?: boolean;
   supportsElements?: boolean;
   requiresReferenceVideo?: boolean;
+  supportsAdvancedParams?: boolean; // temperature / top_p / top_k (default true)
   defaultDuration?: string;
   durations?: string[];
   modes?: string[];
@@ -118,6 +119,17 @@ export const AI_PROVIDERS: Record<string, ModelConfig> = {
     apiModel: 'seedream',
     resolutions: ['1K', '2K', '4K'],
     getCreditCost: ({ resolution }) => resolution === '4K' ? 25 : 20,
+  },
+  'seedream-4.5': {
+    name: 'Seedream 4.5',
+    envKey: 'KIE_API_KEY',
+    description: 'High-quality image generation. 2K (basic) or 4K (high) output.',
+    icon: '✨',
+    type: 'image',
+    apiModel: 'seedream/4.5-text-to-image',
+    supportsAdvancedParams: false,
+    resolutions: ['2K', '4K'],
+    getCreditCost: () => 7,
   },
   'kling-motion-control': {
     name: 'Kling Motion Control',

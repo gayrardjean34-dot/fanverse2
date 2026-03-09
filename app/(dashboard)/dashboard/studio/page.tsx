@@ -9,7 +9,7 @@ import { ChevronDown } from 'lucide-react';
 // ── Data ────────────────────────────────────────────────────────────────────
 
 // Custom order: nano-banana-2 right below nano-banana-pro
-const IMAGE_MODEL_IDS = ['nano-banana-pro', 'nano-banana-2'];
+const IMAGE_MODEL_IDS = ['nano-banana-pro', 'nano-banana-2', 'seedream-4.5'];
 const VIDEO_MODEL_IDS = ['grok-imagine', 'kling-3.0', 'kling-2.6', 'kling-motion-control'];
 
 const SIDEBAR_AUTOMATIONS = {
