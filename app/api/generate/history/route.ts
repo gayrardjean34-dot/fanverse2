@@ -28,14 +28,18 @@ export async function GET(request: NextRequest) {
       whereClause = and(
         baseCondition,
         ne(generations.model, 'automation-selfie'),
-        ne(generations.model, 'automation-faceswap')
+        ne(generations.model, 'automation-faceswap'),
+        ne(generations.model, 'automation-faceswap-uncensored'),
+        ne(generations.model, 'automation-outfit-swap')
       );
     } else if (includeAutomationsOnly) {
       whereClause = and(
         baseCondition,
         or(
           eq(generations.model, 'automation-selfie'),
-          eq(generations.model, 'automation-faceswap')
+          eq(generations.model, 'automation-faceswap'),
+          eq(generations.model, 'automation-faceswap-uncensored'),
+          eq(generations.model, 'automation-outfit-swap')
         )
       );
     } else {
