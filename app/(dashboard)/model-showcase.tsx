@@ -10,6 +10,7 @@ const VITRINE_ITEMS = [
   { src: '/images/vitrine%20(1).png',   caption: 'Made with EZ Face Swap automation' },
   { src: '/images/vitrine3.png',        caption: 'Made with Infinite selfies automation' },
   { src: '/images/vitrine2.jpeg',       caption: 'Made with Infinite Carousel automation' },
+  { src: '/images/vitrine7.png',        caption: 'Made with EZ Face Swap Uncensored' },
   { src: '/images/vitrine6.png',        caption: 'Made with Outfit Swap automation' },
 ];
 
