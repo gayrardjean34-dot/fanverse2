@@ -542,7 +542,7 @@ export default function AutomationsStudio({
     : referenceImage;
 
   return (
-    <>
+    <div className="flex flex-col h-full">
       {/* Gallery area */}
       <div className="flex-1 overflow-y-auto p-4 lg:p-8">
         <div className="flex items-center justify-between mb-6">
@@ -611,7 +611,7 @@ export default function AutomationsStudio({
 
       {/* Unlock prompt for locked automations (free accounts) */}
       {!isAutomationUnlocked(selectedAutomation) && !freeUnlockUsed && (
-        <div className="border-t border-[#7F6DE7]/30 bg-[#7F6DE7]/5 p-6 text-center">
+        <div className="shrink-0 border-t border-[#7F6DE7]/30 bg-[#7F6DE7]/5 p-6 text-center">
           <div className="text-4xl mb-3">🔒</div>
           <h3 className="text-lg font-semibold text-[#FEFEFE] mb-2">
             Unlock {automation.name}
@@ -636,7 +636,7 @@ export default function AutomationsStudio({
       )}
 
       {/* Bottom control panel */}
-      <div className="border-t border-[#333] bg-[#1a1a1a] p-4">
+      <div className="shrink-0 border-t border-[#333] bg-[#1a1a1a] p-4">
         {/* Image previews */}
         <div className="flex gap-3 mb-3 flex-wrap">
           {referenceImage && (
@@ -781,6 +781,6 @@ export default function AutomationsStudio({
           }}
         />
       )}
-    </>
+    </div>
   );
 }
