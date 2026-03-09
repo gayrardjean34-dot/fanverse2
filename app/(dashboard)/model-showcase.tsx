@@ -10,15 +10,15 @@ const VITRINE_ITEMS = [
   { src: '/images/vitrine%20(1).png',   caption: 'Made with EZ Face Swap automation' },
   { src: '/images/vitrine3.png',        caption: 'Made with Infinite selfies automation' },
   { src: '/images/vitrine2.jpeg',       caption: 'Made with Infinite Carousel automation' },
-  { src: '/images/vitrine6.jpeg',       caption: 'Made with Outfit Swap automation' },
+  { src: '/images/vitrine6.png',        caption: 'Made with Outfit Swap automation' },
 ];
 
 const GRADIENT = 'linear-gradient(135deg, rgba(40,184,246,0.85) 0%, rgba(127,109,231,0.85) 50%, rgba(211,36,217,0.85) 100%)';
 
 // ── Model groups ──────────────────────────────────────────────────────────────
-const LEFT_MODEL_IDS   = ['nano-banana-pro', 'nano-banana-2', 'grok-imagine', 'seedream-4.5'];
-const RIGHT_MODEL_IDS  = ['kling-3.0', 'kling-2.6', 'kling-motion-control'];
-const BOTTOM_MODEL_ID  = 'seedream';
+const LEFT_MODEL_IDS  = ['nano-banana-pro', 'nano-banana-2', 'grok-imagine'];
+const RIGHT_MODEL_IDS = ['kling-3.0', 'kling-2.6', 'kling-motion-control'];
+const BOTTOM_MODEL_ID = 'seedream-4.5';
 
 // ── Vitrine Slideshow ─────────────────────────────────────────────────────────
 function VitrineSlideshow() {
@@ -37,53 +37,56 @@ function VitrineSlideshow() {
   }, []);
 
   return (
-    <div
-      className="relative w-full rounded-2xl overflow-hidden bg-[#111] border border-white/10 shadow-2xl shadow-black/40"
-      style={{ aspectRatio: '3/4' }}
-    >
-      {VITRINE_ITEMS.map((item, i) => (
-        <img
-          key={item.src}
-          src={item.src}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out"
-          style={{ opacity: i === current ? 1 : 0 }}
-        />
-      ))}
-
-      {/* Up to 4K Quality badge — top left */}
+    <div className="relative">
+      {/* Caption badge — peeks out top-right of the photo */}
       <div
-        className="absolute top-3 left-3 z-10 flex items-center px-2.5 py-1 rounded-lg backdrop-blur-sm"
-        style={{ background: GRADIENT }}
-      >
-        <span className="text-[11px] font-bold text-white tracking-wide">Up to 4k Quality</span>
-      </div>
-
-      {/* Dynamic caption badge — top right */}
-      <div
-        className="absolute top-3 right-3 z-10 px-3 py-1.5 rounded-lg backdrop-blur-sm max-w-[60%] text-right"
+        className="absolute -top-5 -right-4 z-20 px-3 py-2 rounded-xl shadow-xl max-w-[70%] text-right"
         style={{
           background: GRADIENT,
           opacity: captionVisible ? 1 : 0,
           transition: 'opacity 0.35s ease',
         }}
       >
-        <span className="text-xs font-bold text-white tracking-wide leading-tight">{VITRINE_ITEMS[current].caption}</span>
+        <span className="text-sm font-bold text-white tracking-wide leading-tight">{VITRINE_ITEMS[current].caption}</span>
       </div>
 
-      {/* Subtle gradient at bottom */}
-      <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
-
-      {/* Dot indicators */}
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-        {VITRINE_ITEMS.map((_, i) => (
-          <div
-            key={i}
-            className={`rounded-full transition-all duration-300 ${
-              i === current ? 'w-4 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/35'
-            }`}
+      {/* Photo container */}
+      <div
+        className="relative w-full rounded-2xl overflow-hidden bg-[#111] border border-white/10 shadow-2xl shadow-black/40"
+        style={{ aspectRatio: '3/4' }}
+      >
+        {VITRINE_ITEMS.map((item, i) => (
+          <img
+            key={item.src}
+            src={item.src}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out"
+            style={{ opacity: i === current ? 1 : 0 }}
           />
         ))}
+
+        {/* Up to 4K Quality badge — top left */}
+        <div
+          className="absolute top-3 left-3 z-10 flex items-center px-2.5 py-1 rounded-lg backdrop-blur-sm"
+          style={{ background: GRADIENT }}
+        >
+          <span className="text-[11px] font-bold text-white tracking-wide">Up to 4k Quality</span>
+        </div>
+
+        {/* Subtle gradient at bottom */}
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
+
+        {/* Dot indicators */}
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+          {VITRINE_ITEMS.map((_, i) => (
+            <div
+              key={i}
+              className={`rounded-full transition-all duration-300 ${
+                i === current ? 'w-4 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/35'
+              }`}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -198,13 +201,11 @@ export default function ModelShowcase() {
 
         {/* 2-column centered grid */}
         <div className="max-w-3xl mx-auto grid grid-cols-2 gap-4 mb-4">
-          {/* Left column */}
           <div className="flex flex-col gap-3">
             {LEFT_MODEL_IDS.map((id, i) => (
               <ModelCard key={id} id={id} isActive={ACTIVE_PROVIDER_IDS.includes(id)} index={i} />
             ))}
           </div>
-          {/* Right column */}
           <div className="flex flex-col gap-3">
             {RIGHT_MODEL_IDS.map((id, i) => (
               <ModelCard key={id} id={id} isActive={ACTIVE_PROVIDER_IDS.includes(id)} index={i + LEFT_MODEL_IDS.length} />
@@ -212,7 +213,7 @@ export default function ModelShowcase() {
           </div>
         </div>
 
-        {/* Seedream — centered below, half width */}
+        {/* Seedream 4.5 — centered below, half width */}
         <div className="max-w-3xl mx-auto mb-24">
           <div className="w-1/2 mx-auto">
             <ModelCard id={BOTTOM_MODEL_ID} isActive={ACTIVE_PROVIDER_IDS.includes(BOTTOM_MODEL_ID)} index={LEFT_MODEL_IDS.length + RIGHT_MODEL_IDS.length} />
@@ -229,8 +230,8 @@ export default function ModelShowcase() {
           </p>
         </div>
 
-        {/* Slideshow — 1.5x bigger: max-w-[480px] */}
-        <div className="max-w-[480px] mx-auto">
+        {/* Slideshow — padded so caption badge has room to peek out */}
+        <div className="max-w-[480px] mx-auto pt-6 pr-4">
           <VitrineSlideshow />
         </div>
 
