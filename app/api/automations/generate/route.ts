@@ -119,6 +119,10 @@ export async function POST(request: NextRequest) {
 
 // ── Access check ──
 async function checkAutomationAccess(user: any, automationId: string): Promise<boolean> {
+  // Admin bypass
+  const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map((e) => e.trim()).filter(Boolean);
+  if (adminEmails.includes(user.email)) return true;
+
   const unlockedAutomations = (user.unlockedAutomations as string[]) || [];
   if (unlockedAutomations.includes(automationId)) {
     return true;
