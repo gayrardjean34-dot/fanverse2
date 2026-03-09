@@ -127,7 +127,12 @@ export async function POST(request: NextRequest) {
     function buildInputPayload() {
       const input: Record<string, any> = {};
 
-      if (model === 'nano-banana-2') {
+      if (model === 'seedream-4.5') {
+        // Seedream 4.5 — uses quality param (basic=2K, high=4K)
+        input.prompt = prompt;
+        input.aspect_ratio = aspectRatio || '1:1';
+        input.quality = resolution === '4K' ? 'high' : 'basic';
+      } else if (model === 'nano-banana-2') {
         // Nano Banana 2 — uses image_input instead of reference_images
         input.prompt = systemPrompt ? `${systemPrompt}\n\n${prompt}` : prompt;
         input.aspect_ratio = aspectRatio || 'auto';

@@ -90,7 +90,7 @@ type Generation = {
   createdAt: string;
 };
 
-const IMAGE_ASPECT_RATIOS = ['1:1', '4:3', '3:4', '16:9', '9:16', '3:2', '2:3'];
+const IMAGE_ASPECT_RATIOS = ['1:1', '4:3', '3:4', '16:9', '9:16', '3:2', '2:3', '21:9'];
 const VIDEO_ASPECT_RATIOS = ['16:9', '9:16', '1:1', '4:3', '3:4', '2:3', '3:2'];
 
 function isVideoUrl(url: string): boolean {
@@ -866,24 +866,28 @@ export default function ModelsStudio({
                     {(providerConfig?.resolutions || ['1K', '2K', '4K']).map((r) => <option key={r} value={r}>{r}</option>)}
                   </select>
                 </div>
-                <div>
-                  <Label className="text-xs text-gray-500">Temperature</Label>
-                  <Input type="number" step="0.1" min="0" max="2"
-                    className="bg-[#222] border-[#333] text-[#FEFEFE] text-sm h-8 mt-1"
-                    placeholder="0.7" value={temperature} onChange={(e) => setTemperature(e.target.value)} />
-                </div>
-                <div>
-                  <Label className="text-xs text-gray-500">Top P</Label>
-                  <Input type="number" step="0.1" min="0" max="1"
-                    className="bg-[#222] border-[#333] text-[#FEFEFE] text-sm h-8 mt-1"
-                    placeholder="0.9" value={topP} onChange={(e) => setTopP(e.target.value)} />
-                </div>
-                <div>
-                  <Label className="text-xs text-gray-500">Top K</Label>
-                  <Input type="number" step="1" min="1"
-                    className="bg-[#222] border-[#333] text-[#FEFEFE] text-sm h-8 mt-1"
-                    placeholder="40" value={topK} onChange={(e) => setTopK(e.target.value)} />
-                </div>
+                {providerConfig?.supportsAdvancedParams !== false && (
+                  <>
+                    <div>
+                      <Label className="text-xs text-gray-500">Temperature</Label>
+                      <Input type="number" step="0.1" min="0" max="2"
+                        className="bg-[#222] border-[#333] text-[#FEFEFE] text-sm h-8 mt-1"
+                        placeholder="0.7" value={temperature} onChange={(e) => setTemperature(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-500">Top P</Label>
+                      <Input type="number" step="0.1" min="0" max="1"
+                        className="bg-[#222] border-[#333] text-[#FEFEFE] text-sm h-8 mt-1"
+                        placeholder="0.9" value={topP} onChange={(e) => setTopP(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-500">Top K</Label>
+                      <Input type="number" step="1" min="1"
+                        className="bg-[#222] border-[#333] text-[#FEFEFE] text-sm h-8 mt-1"
+                        placeholder="40" value={topK} onChange={(e) => setTopK(e.target.value)} />
+                    </div>
+                  </>
+                )}
               </>
             )}
 

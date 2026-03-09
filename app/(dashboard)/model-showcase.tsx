@@ -16,9 +16,9 @@ const VITRINE_ITEMS = [
 const GRADIENT = 'linear-gradient(135deg, rgba(40,184,246,0.85) 0%, rgba(127,109,231,0.85) 50%, rgba(211,36,217,0.85) 100%)';
 
 // ── Model groups ──────────────────────────────────────────────────────────────
-const LEFT_MODEL_IDS  = ['nano-banana-pro', 'nano-banana-2', 'grok-imagine'];
-const CENTER_MODEL_ID = 'seedream';
-const RIGHT_MODEL_IDS = ['kling-3.0', 'kling-2.6', 'kling-motion-control'];
+const LEFT_MODEL_IDS   = ['nano-banana-pro', 'nano-banana-2', 'grok-imagine'];
+const CENTER_MODEL_IDS = ['seedream-4.5', 'seedream'];
+const RIGHT_MODEL_IDS  = ['kling-3.0', 'kling-2.6', 'kling-motion-control'];
 
 // ── Vitrine Slideshow ─────────────────────────────────────────────────────────
 function VitrineSlideshow() {
@@ -209,11 +209,11 @@ export default function ModelShowcase() {
             ))}
           </div>
 
-          {/* Center — single card, vertically centered */}
-          <div className="flex items-center justify-center">
-            <div className="w-full">
-              <ModelCard id={CENTER_MODEL_ID} isActive={ACTIVE_PROVIDER_IDS.includes(CENTER_MODEL_ID)} index={3} />
-            </div>
+          {/* Center — two cards, vertically centered */}
+          <div className="flex flex-col gap-3 justify-center">
+            {CENTER_MODEL_IDS.map((id, i) => (
+              <ModelCard key={id} id={id} isActive={ACTIVE_PROVIDER_IDS.includes(id)} index={i + 3} />
+            ))}
           </div>
 
           {/* Right column */}
