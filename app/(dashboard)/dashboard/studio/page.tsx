@@ -16,6 +16,7 @@ const SIDEBAR_AUTOMATIONS = {
   'infinite-selfies': { name: 'Infinite Selfies', icon: '📸' },
   'face-swap': { name: 'EZ Face Swap', icon: '🔄' },
   'ez-face-swap-uncensored': { name: 'EZ Face Swap Semi-Uncensored', icon: '🚀' },
+  'outfit-swap': { name: 'Outfit Swap', icon: '👗' },
 } as const;
 
 type AutomationId = keyof typeof SIDEBAR_AUTOMATIONS;
@@ -237,7 +238,7 @@ export default function StudioPage() {
 
           <div
             className={`overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out ${
-              automationsExpanded ? 'max-h-[400px] opacity-100' : 'max-h-0 opacity-0'
+              automationsExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
             }`}
           >
             {(Object.entries(SIDEBAR_AUTOMATIONS) as [AutomationId, { name: string; icon: string }][]).map(
