@@ -987,7 +987,7 @@ export default function ModelsStudio({
             <Button
               onClick={handleGenerate}
               disabled={generating || !prompt.trim() || (isMotionControl && !referenceVideo) || uploadingVideo}
-              className="h-12 px-6 bg-[#28B8F6] hover:bg-[#28B8F6]/80 text-[#191919] font-semibold rounded-xl">
+              className="h-12 px-6 bg-[#28B8F6] hover:bg-[#28B8F6]/80 text-[#191919] font-semibold rounded-xl cursor-pointer disabled:cursor-not-allowed">
               {generating ? (
                 <Loader2 className="animate-spin h-5 w-5" />
               ) : (
