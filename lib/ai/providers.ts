@@ -156,7 +156,7 @@ export type ProviderId = keyof typeof AI_PROVIDERS;
 export const PROVIDER_IDS = Object.keys(AI_PROVIDERS) as ProviderId[];
 
 // Only active (non-coming-soon) providers
-export const ACTIVE_PROVIDER_IDS = PROVIDER_IDS.filter((id) => id !== 'seedream');
+export const ACTIVE_PROVIDER_IDS = PROVIDER_IDS;
 
 // Providers that require a reference video input
 export const MOTION_CONTROL_IDS = PROVIDER_IDS.filter((id) => AI_PROVIDERS[id].requiresReferenceVideo);
