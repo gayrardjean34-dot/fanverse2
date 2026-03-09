@@ -8,9 +8,11 @@ import crypto from 'crypto';
 const N8N_WEBHOOK_URL = process.env.N8N_SELFIE_WEBHOOK_URL || 'https://n8n.fanverse.lol/webhook/d069e291-644a-4377-996c-b8ef1f17109b';
 const N8N_FACESWAP_WEBHOOK_URL = process.env.N8N_FACESWAP_WEBHOOK_URL || 'https://n8n.fanverse.lol/webhook/ezfaceswapfhdkjsuhjkdfshkfjhdsdsfdfsf';
 const N8N_FACESWAP_UNCENSORED_WEBHOOK_URL = process.env.N8N_FACESWAP_UNCENSORED_WEBHOOK_URL || 'https://n8n.fanverse.lol/webhook/ezfaceswapuncensoredfhdkjsuhjkdfshkfjhdsdsfdfsf';
+const N8N_OUTFIT_SWAP_WEBHOOK_URL = process.env.N8N_OUTFIT_SWAP_WEBHOOK_URL || 'https://n8n.fanverse.lol/webhook/outfitswapjefaisuneurlquisertarioentuletrouverajamaispetitfoudubusklijjfezoiljfe';
 const CREDIT_COST_PER_SELFIE = 22;
 const CREDIT_COST_PER_SWAP = 22;
 const CREDIT_COST_PER_SWAP_UNCENSORED = 25;
+const CREDIT_COST_OUTFIT_SWAP = 22;
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,6 +39,10 @@ export async function POST(request: NextRequest) {
 
     if (automation === 'ez-face-swap-uncensored') {
       return handleFaceSwapUncensored(body, user);
+    }
+
+    if (automation === 'outfit-swap') {
+      return handleOutfitSwap(body, user);
     }
 
     // ── Infinite Selfies ──
@@ -218,6 +224,81 @@ async function handleFaceSwap(body: any, user: { id: number }) {
     generationId: insertedGens[0].id,
     creditCost: totalCost,
     quantity: swapUrls.length,
+  });
+}
+
+// ── Outfit Swap handler ──
+async function handleOutfitSwap(body: any, user: { id: number }) {
+  const refUrl = body.refUrl as string | undefined;
+  const swapUrl = body.swap as string | undefined;
+  const clothePrompt = body.clothe as string | undefined;
+
+  if (!refUrl) {
+    return NextResponse.json({ error: 'Reference image is required.' }, { status: 400 });
+  }
+
+  if (!swapUrl && !clothePrompt) {
+    return NextResponse.json({ error: 'Either a clothes image or a clothes description is required.' }, { status: 400 });
+  }
+
+  if (swapUrl && clothePrompt) {
+    return NextResponse.json({ error: 'Provide either a clothes image or a description, not both.' }, { status: 400 });
+  }
+
+  const balance = await getUserCreditBalance(user.id);
+  if (balance < CREDIT_COST_OUTFIT_SWAP) {
+    return NextResponse.json({
+      error: `Not enough credits. Need ${CREDIT_COST_OUTFIT_SWAP}, have ${balance}.`,
+    }, { status: 402 });
+  }
+
+  const batchId = crypto.randomUUID();
+
+  await createCreditTransaction({
+    userId: user.id,
+    amount: -CREDIT_COST_OUTFIT_SWAP,
+    type: 'spend',
+    reason: `Automation: outfit swap`,
+  });
+
+  const [insertedGen] = await db.insert(generations).values({
+    userId: user.id,
+    batchId,
+    model: 'automation-outfit-swap' as const,
+    prompt: clothePrompt ? `Outfit swap: ${clothePrompt}` : 'Outfit swap from clothes image',
+    aspectRatio: '1:1' as const,
+    resolution: '1K' as const,
+    referenceImages: [] as string[],
+    status: 'processing' as const,
+    creditCost: CREDIT_COST_OUTFIT_SWAP,
+    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+  }).returning();
+
+  const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://fanverse.lol'}/api/automations/callback`;
+
+  const webhookPayload: Record<string, string> = {
+    ref: refUrl,
+    batchId,
+    generationId: insertedGen.id.toString(),
+    callbackUrl,
+  };
+  if (swapUrl) webhookPayload.swap = swapUrl;
+  if (clothePrompt) webhookPayload.clothe = clothePrompt;
+
+  fetch(N8N_OUTFIT_SWAP_WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(webhookPayload),
+  }).catch((err) => {
+    console.error('Failed to call n8n outfit swap webhook:', err);
+  });
+
+  return NextResponse.json({
+    success: true,
+    batchId,
+    generationId: insertedGen.id,
+    creditCost: CREDIT_COST_OUTFIT_SWAP,
+    quantity: 1,
   });
 }
 

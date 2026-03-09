@@ -17,6 +17,7 @@ import {
   ShieldAlert,
   CheckSquare,
   Square,
+  CheckCircle2,
 } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -100,6 +101,16 @@ const AUTOMATIONS = {
     maxQuantity: 15,
     modelFilter: 'automation-faceswap-uncensored',
   },
+  'outfit-swap': {
+    id: 'outfit-swap',
+    name: 'Outfit Swap',
+    icon: '👗',
+    description: 'Swap the outfit of a person using a clothes image or a text prompt',
+    creditPerImage: 22,
+    requiresRefImage: true,
+    maxQuantity: 1,
+    modelFilter: 'automation-outfit-swap',
+  },
 } as const;
 
 type AutomationId = keyof typeof AUTOMATIONS;
@@ -127,6 +138,7 @@ function getAutomationName(model: string): string {
   if (model === 'automation-selfie') return 'Infinite Selfies';
   if (model === 'automation-faceswap') return 'EZ Face Swap';
   if (model === 'automation-faceswap-uncensored') return 'EZ Face Swap Semi-Uncensored (beta)';
+  if (model === 'automation-outfit-swap') return 'Outfit Swap';
   return 'Unknown Automation';
 }
 
@@ -141,6 +153,34 @@ function AutomationMediaModal({
   onDelete: (id: number) => void;
 }) {
   const cleanifyFailed = gen.resultData?.cleanifyFailed === true;
+  const [zoom, setZoom] = useState(1);
+  const [translate, setTranslate] = useState({ x: 0, y: 0 });
+  const isDragging = useRef(false);
+  const dragStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
+
+  function handleWheel(e: React.WheelEvent) {
+    e.preventDefault();
+    setZoom((z) => Math.min(5, Math.max(1, z - e.deltaY * 0.005)));
+    if (zoom <= 1) setTranslate({ x: 0, y: 0 });
+  }
+
+  function handleMouseDown(e: React.MouseEvent) {
+    if (zoom <= 1) return;
+    isDragging.current = true;
+    dragStart.current = { x: e.clientX, y: e.clientY, tx: translate.x, ty: translate.y };
+  }
+
+  function handleMouseMove(e: React.MouseEvent) {
+    if (!isDragging.current) return;
+    setTranslate({
+      x: dragStart.current.tx + (e.clientX - dragStart.current.x),
+      y: dragStart.current.ty + (e.clientY - dragStart.current.y),
+    });
+  }
+
+  function handleMouseUp() { isDragging.current = false; }
+
+  function resetZoom() { setZoom(1); setTranslate({ x: 0, y: 0 }); }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
@@ -155,7 +195,41 @@ function AutomationMediaModal({
         </div>
 
         {gen.status === 'completed' && gen.resultUrl && (
-          <img src={gen.resultUrl} alt="Generated" className="w-full rounded-xl mb-4 max-h-[50vh] object-contain bg-black" />
+          <div
+            className="relative w-full rounded-xl mb-4 overflow-hidden bg-black"
+            style={{ maxHeight: '50vh', cursor: zoom > 1 ? (isDragging.current ? 'grabbing' : 'grab') : 'zoom-in' }}
+            onWheel={handleWheel}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            onDoubleClick={resetZoom}
+          >
+            <img
+              src={gen.resultUrl}
+              alt="Generated"
+              draggable={false}
+              className="w-full object-contain select-none"
+              style={{
+                transform: `scale(${zoom}) translate(${translate.x / zoom}px, ${translate.y / zoom}px)`,
+                transition: isDragging.current ? 'none' : 'transform 0.15s ease',
+                maxHeight: '50vh',
+              }}
+            />
+            {zoom > 1 && (
+              <button
+                onClick={resetZoom}
+                className="absolute top-2 right-2 text-xs px-2 py-1 rounded bg-black/60 text-white hover:bg-black/80"
+              >
+                Reset ({Math.round(zoom * 100)}%)
+              </button>
+            )}
+            {zoom === 1 && (
+              <div className="absolute bottom-2 right-2 text-xs px-2 py-1 rounded bg-black/50 text-white/60 pointer-events-none">
+                Scroll to zoom · Double-click to reset
+              </div>
+            )}
+          </div>
         )}
 
         {gen.status === 'failed' && (
@@ -168,24 +242,25 @@ function AutomationMediaModal({
           </div>
         )}
 
-        {/* Cleanify warning */}
-        {cleanifyFailed && gen.status === 'completed' && (
-          <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-2 mb-4">
-            <ShieldAlert className="h-4 w-4 text-yellow-400 shrink-0" />
-            <p className="text-xs text-yellow-400">
-              Metadata cleaning failed for this image. The original AI metadata may still be present.
-            </p>
-          </div>
-        )}
-
         {gen.status === 'completed' && gen.resultUrl && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-3">
             <a
               href={getDownloadUrl(gen.resultUrl)}
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#28B8F6] text-[#191919] text-sm font-medium hover:bg-[#28B8F6]/80 transition-colors"
             >
               <Download className="h-4 w-4" /> Download
             </a>
+            {cleanifyFailed ? (
+              <span className="flex items-center gap-1.5 text-sm text-red-400">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                metadata clean failed
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 text-sm text-green-400">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                Metadata were successfully cleaned
+              </span>
+            )}
             <button
               onClick={() => {
                 if (confirm('Delete this image?')) {
@@ -243,7 +318,6 @@ function AutomationGenCard({
           : 'border-[#333] bg-[#222] hover:border-[#7F6DE7]/50'
       }`}
       onClick={handleClick}
-      title={getAutomationName(gen.model)} // Tooltip with automation name
     >
       {selectionMode && (
         <div className="absolute top-2 left-2 z-10">
@@ -281,8 +355,9 @@ function AutomationGenCard({
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
             <div className="absolute bottom-0 left-0 right-0 p-3">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs text-gray-400">⚡ Automation</span>
+                <span className="text-xs text-white font-medium">• {getAutomationName(gen.model)}</span>
                 <span className="text-xs text-gray-400">• {gen.creditCost} cr</span>
               </div>
             </div>
@@ -312,6 +387,9 @@ export default function AutomationsStudio({
   const [quantity, setQuantity] = useState(1);
   const [referenceImage, setReferenceImage] = useState<{ file: File; preview: string } | null>(null);
   const [swapImages, setSwapImages] = useState<{ file: File; preview: string }[]>([]);
+  const [clothesImage, setClothesImage] = useState<{ file: File; preview: string } | null>(null);
+  const [clothesPrompt, setClothesPrompt] = useState('');
+  const [outfitInputMode, setOutfitInputMode] = useState<'image' | 'prompt'>('image');
   const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [selectedGen, setSelectedGen] = useState<Generation | null>(null);
@@ -320,6 +398,7 @@ export default function AutomationsStudio({
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const refInputRef = useRef<HTMLInputElement>(null);
   const swapsInputRef = useRef<HTMLInputElement>(null);
+  const clothesInputRef = useRef<HTMLInputElement>(null);
 
   const { data: userData, mutate: mutateUser } = useSWR<UserData>('/api/user', fetcher);
   const { data: teamData } = useSWR<TeamData>('/api/team', fetcher);
@@ -354,8 +433,11 @@ export default function AutomationsStudio({
   const automationId = (AUTOMATION_IDS.includes(selectedAutomation as AutomationId) ? selectedAutomation : 'infinite-selfies') as AutomationId;
   const automation = AUTOMATIONS[automationId];
   const isFaceSwap = automationId === 'face-swap' || automationId === 'ez-face-swap-uncensored';
+  const isOutfitSwap = automationId === 'outfit-swap';
   const creditCost = isFaceSwap
     ? swapImages.length * automation.creditPerImage
+    : isOutfitSwap
+    ? automation.creditPerImage
     : quantity * automation.creditPerImage;
 
   const { data: history, mutate: mutateHistory } = useSWR<Generation[]>(
@@ -382,12 +464,18 @@ export default function AutomationsStudio({
     return () => clearInterval(interval);
   }, [hasPending, mutateHistory]);
 
-  // Reset swap images when switching automation
+  // Reset swap/outfit inputs when switching automation
   useEffect(() => {
     setSwapImages((prev) => {
       prev.forEach((img) => URL.revokeObjectURL(img.preview));
       return [];
     });
+    setClothesImage((prev) => {
+      if (prev) URL.revokeObjectURL(prev.preview);
+      return null;
+    });
+    setClothesPrompt('');
+    setOutfitInputMode('image');
     setQuantity(1);
   }, [selectedAutomation]);
 
@@ -428,6 +516,24 @@ export default function AutomationsStudio({
       const removed = prev[index];
       if (removed) URL.revokeObjectURL(removed.preview);
       return prev.filter((_, i) => i !== index);
+    });
+  }, []);
+
+  const handleClothesSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const preview = URL.createObjectURL(file);
+    setClothesImage((prev) => {
+      if (prev) URL.revokeObjectURL(prev.preview);
+      return { file, preview };
+    });
+    e.target.value = '';
+  }, []);
+
+  const removeClothesImage = useCallback(() => {
+    setClothesImage((prev) => {
+      if (prev) URL.revokeObjectURL(prev.preview);
+      return null;
     });
   }, []);
 
@@ -487,6 +593,8 @@ export default function AutomationsStudio({
   async function handleGenerate() {
     if (!referenceImage || generating || uploading) return;
     if (isFaceSwap && swapImages.length === 0) return;
+    if (isOutfitSwap && outfitInputMode === 'image' && !clothesImage) return;
+    if (isOutfitSwap && outfitInputMode === 'prompt' && !clothesPrompt.trim()) return;
 
     try {
       setUploading(true);
@@ -508,13 +616,24 @@ export default function AutomationsStudio({
         swapUrls = await Promise.all(swapImages.map((img) => uploadOne(img.file)));
       }
 
-      setUploading(false);
+      let clothesUrl: string | undefined;
+      if (isOutfitSwap && outfitInputMode === 'image' && clothesImage) {
+        clothesUrl = await uploadOne(clothesImage.file);
+      }
 
+      setUploading(false);
       setGenerating(true);
 
-      const body = isFaceSwap
-        ? { automation: selectedAutomation, refUrl, swapUrls }
-        : { automation: selectedAutomation, refUrl, quantity };
+      let body: Record<string, unknown>;
+      if (isFaceSwap) {
+        body = { automation: selectedAutomation, refUrl, swapUrls };
+      } else if (isOutfitSwap) {
+        body = outfitInputMode === 'image'
+          ? { automation: selectedAutomation, refUrl, swap: clothesUrl }
+          : { automation: selectedAutomation, refUrl, clothe: clothesPrompt.trim() };
+      } else {
+        body = { automation: selectedAutomation, refUrl, quantity };
+      }
 
       const res = await fetch('/api/automations/generate', {
         method: 'POST',
@@ -539,6 +658,8 @@ export default function AutomationsStudio({
   const isLocked = !isAutomationUnlocked(selectedAutomation);
   const canGenerate = isFaceSwap
     ? referenceImage && swapImages.length > 0
+    : isOutfitSwap
+    ? referenceImage && (outfitInputMode === 'image' ? !!clothesImage : !!clothesPrompt.trim())
     : referenceImage;
 
   return (
@@ -664,6 +785,19 @@ export default function AutomationsStudio({
               </span>
             </div>
           ))}
+
+          {isOutfitSwap && clothesImage && (
+            <div className="relative shrink-0 w-20 h-20">
+              <img src={clothesImage.preview} alt="Clothes" className="w-full h-full object-cover rounded-lg border border-[#7F6DE7]/50" />
+              <button onClick={removeClothesImage}
+                className="absolute -top-2 -right-2 bg-red-500 rounded-full w-5 h-5 flex items-center justify-center shadow-lg z-10">
+                <X className="h-3 w-3 text-white" />
+              </button>
+              <span className="absolute bottom-1 left-1 text-[10px] bg-[#7F6DE7]/80 text-white px-1.5 py-0.5 rounded backdrop-blur-sm">
+                Clothes
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Controls row */}
@@ -711,7 +845,64 @@ export default function AutomationsStudio({
               </>
             )}
 
-            {!isFaceSwap && (
+            {isOutfitSwap && (
+              <div className="flex items-end gap-3 flex-1">
+                {/* Mode toggle */}
+                <div className="flex rounded-xl overflow-hidden border border-[#333] shrink-0">
+                  <button
+                    onClick={() => { setOutfitInputMode('image'); setClothesPrompt(''); }}
+                    className={`px-3 h-12 text-xs font-medium transition-colors ${
+                      outfitInputMode === 'image'
+                        ? 'bg-[#7F6DE7] text-white'
+                        : 'bg-[#222] text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    📷 Image
+                  </button>
+                  <button
+                    onClick={() => { setOutfitInputMode('prompt'); removeClothesImage(); }}
+                    className={`px-3 h-12 text-xs font-medium transition-colors ${
+                      outfitInputMode === 'prompt'
+                        ? 'bg-[#7F6DE7] text-white'
+                        : 'bg-[#222] text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    ✏️ Prompt
+                  </button>
+                </div>
+
+                {outfitInputMode === 'image' ? (
+                  <div className="relative shrink-0">
+                    <button onClick={() => clothesInputRef.current?.click()}
+                      className={`h-12 w-12 rounded-xl border flex items-center justify-center transition-colors ${
+                        clothesImage
+                          ? 'bg-[#7F6DE7]/10 border-[#7F6DE7]/30 text-[#7F6DE7]'
+                          : 'bg-[#222] border-[#333] text-gray-400 hover:text-[#7F6DE7] hover:border-[#7F6DE7]/30'
+                      }`}
+                      title="Upload clothes image">
+                      <UploadIcon className="h-5 w-5" />
+                    </button>
+                    {clothesImage && (
+                      <span className="absolute -top-1 -right-1 bg-[#7F6DE7] text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">✓</span>
+                    )}
+                    <span className="text-[10px] text-gray-500 text-center block mt-1">Clothes</span>
+                    <input ref={clothesInputRef} type="file" accept="image/*" className="hidden" onChange={handleClothesSelect} />
+                  </div>
+                ) : (
+                  <div className="flex-1">
+                    <textarea
+                      value={clothesPrompt}
+                      onChange={(e) => setClothesPrompt(e.target.value)}
+                      placeholder="Describe the clothes (e.g. red summer dress, black leather jacket...)"
+                      rows={2}
+                      className="w-full bg-[#222] border border-[#333] text-[#FEFEFE] rounded-xl px-3 py-2 text-sm outline-none focus:border-[#7F6DE7]/50 transition-colors resize-none placeholder-gray-600"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!isFaceSwap && !isOutfitSwap && (
               <div className="w-32">
                 <Label className="text-xs text-gray-500 mb-1 block">How many images</Label>
                 <input
