@@ -106,7 +106,7 @@ const AUTOMATIONS = {
     name: 'Outfit Swap',
     icon: '👗',
     description: 'Swap the outfit of a person using a clothes image or a text prompt',
-    creditPerImage: 22,
+    creditPerImage: 15,
     requiresRefImage: true,
     maxQuantity: 1,
     modelFilter: 'automation-outfit-swap',
