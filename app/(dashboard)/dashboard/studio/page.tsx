@@ -139,7 +139,7 @@ export default function StudioPage() {
     <div className="flex h-[calc(100dvh-68px)] bg-[#191919]">
 
       {/* ── Left Sidebar ────────────────────────────────────────────────────── */}
-      <aside className="w-72 shrink-0 border-r border-[#242424] bg-[#181818] flex flex-col overflow-y-auto">
+      <aside className="w-72 shrink-0 border-r border-[#2a2a2a] bg-[#0f0f0f] flex flex-col overflow-y-auto">
 
         {/* ── Models Section ── */}
         <div>

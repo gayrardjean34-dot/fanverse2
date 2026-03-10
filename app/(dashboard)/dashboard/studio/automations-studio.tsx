@@ -779,7 +779,7 @@ export default function AutomationsStudio({
 
       {/* Unlock prompt for locked automations (free accounts) */}
       {!isAutomationUnlocked(selectedAutomation) && !freeUnlockUsed && (
-        <div className="shrink-0 border-t border-[#7F6DE7]/30 bg-[#7F6DE7]/5 p-6 text-center">
+        <div className="shrink-0 border-t border-[#7F6DE7]/30 bg-[#0f0f0f] p-6 text-center">
           <div className="text-4xl mb-3">🔒</div>
           <h3 className="text-lg font-semibold text-[#FEFEFE] mb-2">
             Unlock {automation.name}
@@ -804,7 +804,7 @@ export default function AutomationsStudio({
       )}
 
       {/* Bottom control panel */}
-      <div className="shrink-0 border-t border-[#333] bg-[#1a1a1a] p-4">
+      <div className="shrink-0 border-t border-[#2a2a2a] bg-[#0f0f0f] p-4">
         {/* Image previews */}
         <div className="flex gap-3 mb-3 flex-wrap">
           {referenceImage && (
