@@ -314,6 +314,7 @@ async function handleInfiniteCarousel(body: any, user: { id: number }) {
   const carouselCount = Math.max(1, Math.min(5, parseInt(body.carousel) || 1));
   const carouselMultiplier = Math.max(1, Math.min(5, parseInt(body.quant) || 1));
   const breastRefiner = !!body.breastRefiner;
+  const ratio = ['1:1', '2:3', '3:4', '9:16'].includes(body.ratio) ? body.ratio : '3:4';
   const types = {
     body: !!body.body,
     upper: !!body.upper,
@@ -377,6 +378,7 @@ async function handleInfiniteCarousel(body: any, user: { id: number }) {
       ref: refUrl,
       carousel: carouselCount,
       quant: carouselMultiplier,
+      ratio,
       wavemax: checkedCount,
       body: types.body,
       upper: types.upper,
