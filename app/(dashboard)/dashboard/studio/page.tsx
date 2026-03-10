@@ -86,12 +86,14 @@ function AutomationItem({
   name,
   icon,
   isSelected,
+  hot,
   onClick,
 }: {
   id: string;
   name: string;
   icon: string;
   isSelected: boolean;
+  hot?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -118,6 +120,11 @@ function AutomationItem({
         >
           {name}
         </span>
+        {hot && (
+          <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30">
+            🔥 Hot
+          </span>
+        )}
       </div>
       {!isSelected && (
         <div className="absolute inset-0 bg-gradient-to-r from-[#7F6DE7]/0 via-[#7F6DE7]/3 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
@@ -250,6 +257,7 @@ export default function StudioPage() {
                   name={name}
                   icon={icon}
                   isSelected={activeSection === 'automations' && selectedAutomation === id}
+                  hot={id === 'infinite-carousel'}
                   onClick={() => {
                     setSelectedAutomation(id);
                     setActiveSection('automations');
