@@ -1,23 +1,31 @@
+import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUser } from '@/lib/db/queries';
+import { r2, R2_BUCKET, isR2Url, r2KeyFromUrl } from '@/lib/r2';
 
 async function handleDownload(url: string) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('Fetch failed');
-
-  const contentType = res.headers.get('content-type') || 'application/octet-stream';
-  const isVideo = contentType.startsWith('video/') || url.includes('.mp4') || url.includes('.webm');
+  const isVideo = url.includes('.mp4') || url.includes('.webm') || url.includes('.mov');
   const ext = isVideo ? 'mp4' : 'png';
   const filename = `fanverse-${Date.now()}.${ext}`;
 
-  const blob = await res.arrayBuffer();
+  if (isR2Url(url)) {
+    // Presigned URL avec Content-Disposition attachment — zéro transit par Vercel
+    const key = r2KeyFromUrl(url);
+    const signedUrl = await getSignedUrl(
+      r2,
+      new GetObjectCommand({
+        Bucket: R2_BUCKET,
+        Key: key,
+        ResponseContentDisposition: `attachment; filename="${filename}"`,
+      }),
+      { expiresIn: 300 },
+    );
+    return NextResponse.redirect(signedUrl);
+  }
 
-  return new NextResponse(blob, {
-    headers: {
-      'Content-Type': contentType,
-      'Content-Disposition': `attachment; filename="${filename}"`,
-    },
-  });
+  // URLs legacy (kie.ai, ancien Vercel Blob) — redirect direct, pas de proxy
+  return NextResponse.redirect(url);
 }
 
 export async function GET(request: NextRequest) {
@@ -27,11 +35,7 @@ export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get('url');
   if (!url) return NextResponse.json({ error: 'Missing url' }, { status: 400 });
 
-  try {
-    return await handleDownload(url);
-  } catch {
-    return NextResponse.redirect(url);
-  }
+  return handleDownload(url);
 }
 
 export async function POST(request: NextRequest) {
@@ -41,9 +45,5 @@ export async function POST(request: NextRequest) {
   const { url } = await request.json();
   if (!url) return NextResponse.json({ error: 'Missing url' }, { status: 400 });
 
-  try {
-    return await handleDownload(url);
-  } catch {
-    return NextResponse.redirect(url);
-  }
+  return handleDownload(url);
 }

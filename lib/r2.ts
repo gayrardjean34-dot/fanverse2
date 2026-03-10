@@ -19,3 +19,7 @@ export function r2PublicUrl(key: string): string {
 export function isR2Url(url: string): boolean {
   return url.includes('r2.dev') || url.includes('r2.cloudflarestorage.com');
 }
+
+export function r2KeyFromUrl(url: string): string {
+  return url.replace(`${R2_PUBLIC_URL}/`, '');
+}
