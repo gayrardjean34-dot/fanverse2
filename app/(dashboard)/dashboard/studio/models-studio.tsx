@@ -755,7 +755,7 @@ export default function ModelsStudio({
       </div>
 
       {/* Bottom control panel */}
-      <div className="border-t border-[#333] bg-[#1a1a1a] p-4">
+      <div className="border-t border-[#2a2a2a] bg-[#0f0f0f] p-4">
         {/* Reference images */}
         {referenceImages.length > 0 && (
           <div className="flex gap-3 mb-3 overflow-x-auto pb-2">
