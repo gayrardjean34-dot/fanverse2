@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import NextImage from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import useSWR, { mutate } from 'swr';
@@ -379,7 +380,16 @@ function AutomationGenCard({
       )}
       {gen.status === 'completed' && gen.resultUrl && (
         <>
-          <img src={gen.resultUrl} alt="" className="aspect-square w-full object-cover" />
+          <div className="relative aspect-square w-full">
+            <NextImage
+              src={gen.resultUrl}
+              alt=""
+              fill
+              sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
+              className="object-cover"
+              loading="lazy"
+            />
+          </div>
           {/* Cleanify warning badge */}
           {cleanifyFailed && (
             <div className="absolute top-2 left-2 z-10">
@@ -438,6 +448,7 @@ export default function AutomationsStudio({
   const [unlocking, setUnlocking] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [historyLimit, setHistoryLimit] = useState(30);
   const refInputRef = useRef<HTMLInputElement>(null);
   const swapsInputRef = useRef<HTMLInputElement>(null);
   const clothesInputRef = useRef<HTMLInputElement>(null);
@@ -487,7 +498,7 @@ export default function AutomationsStudio({
     : quantity * automation.creditPerImage;
 
   const { data: history, mutate: mutateHistory } = useSWR<Generation[]>(
-    '/api/generate/history?limit=100&automationsOnly=true',
+    `/api/generate/history?limit=${historyLimit}&automationsOnly=true`,
     fetcher,
     { refreshInterval: 3000 }
   );
@@ -808,6 +819,16 @@ export default function AutomationsStudio({
                 selectionMode={selectionMode}
               />
             ))}
+          </div>
+        )}
+        {automationHistory.length === historyLimit && (
+          <div className="flex justify-center mt-6">
+            <button
+              onClick={() => setHistoryLimit((l) => l + 30)}
+              className="px-5 py-2 rounded-xl border border-[#333] text-sm text-gray-400 hover:text-white hover:border-[#7F6DE7]/50 transition-colors"
+            >
+              Load more
+            </button>
           </div>
         )}
       </div>

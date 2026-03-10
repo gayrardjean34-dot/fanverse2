@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import NextImage from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -415,7 +416,16 @@ function GenCard({
           </>
         ) : (
           <>
-            <img src={gen.resultUrl} alt="" className="aspect-square w-full object-cover" />
+            <div className="relative aspect-square w-full">
+              <NextImage
+                src={gen.resultUrl}
+                alt=""
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
+                className="object-cover"
+                loading="lazy"
+              />
+            </div>
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
               <div className="absolute bottom-0 left-0 right-0 p-3">
                 <p className="text-xs text-white line-clamp-2">{gen.prompt}</p>
@@ -457,6 +467,7 @@ export default function ModelsStudio({
   const [topP, setTopP] = useState<string>('');
   const [topK, setTopK] = useState<string>('');
   const [batchSize, setBatchSize] = useState(1);
+  const [historyLimit, setHistoryLimit] = useState(30);
   const [referenceImages, setReferenceImages] = useState<RefImg[]>([]);
   const [generating, setGenerating] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -523,7 +534,7 @@ export default function ModelsStudio({
   }, [model]);
 
   const { data: history, mutate: mutateHistory } = useSWR<Generation[]>(
-    '/api/generate/history?limit=100&excludeAutomations=true',
+    `/api/generate/history?limit=${historyLimit}&excludeAutomations=true`,
     fetcher,
     { refreshInterval: 3000 }
   );
@@ -761,6 +772,16 @@ export default function ModelsStudio({
                 selectionMode={selectionMode}
               />
             ))}
+          </div>
+        )}
+        {history && history.length === historyLimit && (
+          <div className="flex justify-center mt-6">
+            <button
+              onClick={() => setHistoryLimit((l) => l + 30)}
+              className="px-5 py-2 rounded-xl border border-[#333] text-sm text-gray-400 hover:text-white hover:border-[#28B8F6]/50 transition-colors"
+            >
+              Load more
+            </button>
           </div>
         )}
       </div>
