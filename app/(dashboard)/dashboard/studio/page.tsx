@@ -13,11 +13,11 @@ const IMAGE_MODEL_IDS = ['nano-banana-pro', 'nano-banana-2', 'seedream-4.5'];
 const VIDEO_MODEL_IDS = ['grok-imagine', 'kling-3.0', 'kling-2.6', 'kling-motion-control'];
 
 const SIDEBAR_AUTOMATIONS = {
+  'infinite-carousel': { name: 'Infinite Carousel', icon: '🎠' },
   'infinite-selfies': { name: 'Infinite Selfies', icon: '📸' },
   'face-swap': { name: 'EZ Face Swap', icon: '🔄' },
   'ez-face-swap-uncensored': { name: 'EZ Face Swap Semi-Uncensored', icon: '🚀' },
   'outfit-swap': { name: 'Outfit Swap', icon: '👗' },
-  'infinite-carousel': { name: 'Infinite Carousel', icon: '🎠' },
 } as const;
 
 type AutomationId = keyof typeof SIDEBAR_AUTOMATIONS;
@@ -131,7 +131,7 @@ function AutomationItem({
 export default function StudioPage() {
   const [activeSection, setActiveSection] = useState<ActiveSection>('models');
   const [selectedModel, setSelectedModel] = useState<string>('nano-banana-pro');
-  const [selectedAutomation, setSelectedAutomation] = useState<AutomationId>('infinite-selfies');
+  const [selectedAutomation, setSelectedAutomation] = useState<AutomationId>('infinite-carousel');
   const [modelsExpanded, setModelsExpanded] = useState(true);
   const [automationsExpanded, setAutomationsExpanded] = useState(false);
 

@@ -83,6 +83,16 @@ type CarouselTypes = Record<CarouselType, boolean>;
 
 // Automation definitions
 const AUTOMATIONS = {
+  'infinite-carousel': {
+    id: 'infinite-carousel',
+    name: 'Infinite Carousel',
+    icon: '🎠',
+    description: 'Generate carousel sets with multiple shot types from a reference photo',
+    creditPerImage: 23,
+    requiresRefImage: true,
+    maxQuantity: 20,
+    modelFilter: 'automation-carousel',
+  },
   'infinite-selfies': {
     id: 'infinite-selfies',
     name: 'Infinite Selfies',
@@ -122,16 +132,6 @@ const AUTOMATIONS = {
     requiresRefImage: true,
     maxQuantity: 1,
     modelFilter: 'automation-outfit-swap',
-  },
-  'infinite-carousel': {
-    id: 'infinite-carousel',
-    name: 'Infinite Carousel',
-    icon: '🎠',
-    description: 'Generate carousel sets with multiple shot types from a reference photo',
-    creditPerImage: 23,
-    requiresRefImage: true,
-    maxQuantity: 20,
-    modelFilter: 'automation-carousel',
   },
 } as const;
 
@@ -420,6 +420,8 @@ export default function AutomationsStudio({
   const [breastRefiner, setBreastRefiner] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [showFirstRunModal, setShowFirstRunModal] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [selectedGen, setSelectedGen] = useState<Generation | null>(null);
   const [unlocking, setUnlocking] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
@@ -627,11 +629,17 @@ export default function AutomationsStudio({
     }
   }, [selectedIds, mutateHistory]);
 
-  async function handleGenerate() {
+  async function handleGenerate(confirmed = false) {
     if (!referenceImage || generating || uploading) return;
     if (isFaceSwap && swapImages.length === 0) return;
     if (isOutfitSwap && outfitInputMode === 'image' && !clothesImage) return;
     if (isOutfitSwap && outfitInputMode === 'prompt' && !clothesPrompt.trim()) return;
+
+    // First-run warning
+    if (!confirmed && typeof window !== 'undefined' && !localStorage.getItem('automation_first_run_shown')) {
+      setShowFirstRunModal(true);
+      return;
+    }
 
     try {
       setUploading(true);
@@ -697,6 +705,15 @@ export default function AutomationsStudio({
       } else {
         mutateHistory();
         mutate('/api/credits/balance');
+        // Track completions for feedback prompt
+        if (typeof window !== 'undefined') {
+          const count = parseInt(localStorage.getItem('automation_completed_count') || '0') + 1;
+          localStorage.setItem('automation_completed_count', count.toString());
+          if (count >= 2 && !localStorage.getItem('automation_feedback_shown')) {
+            localStorage.setItem('automation_feedback_shown', '1');
+            setShowFeedbackModal(true);
+          }
+        }
       }
     } catch {
       alert('Something went wrong');
@@ -1102,6 +1119,69 @@ export default function AutomationsStudio({
           </div>
         </div>
       </div>
+
+      {/* First-run warning modal */}
+      {showFirstRunModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-[#1a1a1a] border border-[#333] rounded-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-2xl">⚠️</span>
+              <h3 className="text-lg font-semibold text-[#FEFEFE]">Before you continue</h3>
+            </div>
+            <p className="text-gray-300 text-sm leading-relaxed mb-6">
+              Our automations are still in development. The automations shared here are stable, but failures can still occur. We recommend starting with a low volume first — and we'd love your feedback whether everything went smoothly or something went wrong.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowFirstRunModal(false)}
+                className="px-4 py-2 rounded-xl border border-[#333] text-gray-400 hover:text-white hover:border-[#444] text-sm font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (typeof window !== 'undefined') localStorage.setItem('automation_first_run_shown', '1');
+                  setShowFirstRunModal(false);
+                  handleGenerate(true);
+                }}
+                className="px-4 py-2 rounded-xl bg-[#7F6DE7] hover:bg-[#7F6DE7]/80 text-white text-sm font-medium transition-colors"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Feedback modal */}
+      {showFeedbackModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-[#1a1a1a] border border-[#333] rounded-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-2xl">💬</span>
+              <h3 className="text-lg font-semibold text-[#FEFEFE]">How's it going?</h3>
+            </div>
+            <p className="text-gray-300 text-sm leading-relaxed mb-6">
+              You've already run a couple of automations — we'd really appreciate hearing your thoughts! Let us know what worked, what didn't, or any ideas you have.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowFeedbackModal(false)}
+                className="px-4 py-2 rounded-xl border border-[#333] text-gray-400 hover:text-white hover:border-[#444] text-sm font-medium transition-colors"
+              >
+                Maybe later
+              </button>
+              <a
+                href="/contact"
+                onClick={() => setShowFeedbackModal(false)}
+                className="px-4 py-2 rounded-xl bg-[#28B8F6] hover:bg-[#28B8F6]/80 text-[#191919] text-sm font-semibold transition-colors"
+              >
+                Give us feedback
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 
       {selectedGen && (
         <AutomationMediaModal
