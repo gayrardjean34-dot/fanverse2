@@ -92,10 +92,10 @@ export async function POST(request: NextRequest) {
       prompt: `Generate selfie from reference image (${i + 1}/${quantity})`,
       aspectRatio: '1:1' as const,
       resolution: '1K' as const,
-      referenceImages: [] as string[],
+      referenceImages: i === 0 ? [refUrl] : [] as string[],
       status: 'processing' as const,
       creditCost: i === 0 ? costPerImage + remainder : costPerImage,
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     }));
 
     const insertedGens = await db.insert(generations).values(genValues).returning();
@@ -193,17 +193,17 @@ async function handleFaceSwap(body: any, user: { id: number }) {
   const costPerImage = Math.floor(totalCost / swapUrls.length);
   const remainder = totalCost - costPerImage * swapUrls.length;
 
-  const genValues = swapUrls.map((_, i) => ({
+  const genValues = swapUrls.map((swapUrl, i) => ({
     userId: user.id,
     batchId,
     model: 'automation-faceswap' as const,
     prompt: `Face swap image ${i + 1}/${swapUrls.length} from reference`,
     aspectRatio: '1:1' as const,
     resolution: '1K' as const,
-    referenceImages: [] as string[],
+    referenceImages: i === 0 ? [refUrl, ...swapUrls] : [] as string[],
     status: 'processing' as const,
     creditCost: i === 0 ? costPerImage + remainder : costPerImage,
-    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   }));
 
   const insertedGens = await db.insert(generations).values(genValues).returning();
@@ -274,10 +274,10 @@ async function handleOutfitSwap(body: any, user: { id: number }) {
     prompt: clothePrompt ? `Outfit swap: ${clothePrompt}` : 'Outfit swap from clothes image',
     aspectRatio: '1:1' as const,
     resolution: '1K' as const,
-    referenceImages: [] as string[],
+    referenceImages: [refUrl, ...(swapUrl ? [swapUrl] : [])] as string[],
     status: 'processing' as const,
     creditCost: CREDIT_COST_OUTFIT_SWAP,
-    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   }).returning();
 
   const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://fanverse.lol'}/api/automations/callback`;
@@ -361,10 +361,10 @@ async function handleInfiniteCarousel(body: any, user: { id: number }) {
     prompt: `Carousel image ${i + 1}/${totalImages}`,
     aspectRatio: '1:1' as const,
     resolution: '1K' as const,
-    referenceImages: [] as string[],
+    referenceImages: i === 0 ? [refUrl] : [] as string[],
     status: 'processing' as const,
     creditCost: i === 0 ? costPerImage + remainder : costPerImage,
-    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   }));
 
   const insertedGens = await db.insert(generations).values(genValues).returning();
@@ -444,17 +444,17 @@ async function handleFaceSwapUncensored(body: any, user: { id: number }) {
   const costPerImage = Math.floor(totalCost / swapUrls.length);
   const remainder = totalCost - costPerImage * swapUrls.length;
 
-  const genValues = swapUrls.map((_, i) => ({
+  const genValues = swapUrls.map((swapUrl, i) => ({
     userId: user.id,
     batchId,
     model: 'automation-faceswap-uncensored' as const,
     prompt: `Face swap uncensored image ${i + 1}/${swapUrls.length} from reference`,
     aspectRatio: '1:1' as const,
     resolution: '1K' as const,
-    referenceImages: [] as string[],
+    referenceImages: i === 0 ? [refUrl, ...swapUrls] : [] as string[],
     status: 'processing' as const,
     creditCost: i === 0 ? costPerImage + remainder : costPerImage,
-    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   }));
 
   const insertedGens = await db.insert(generations).values(genValues).returning();
