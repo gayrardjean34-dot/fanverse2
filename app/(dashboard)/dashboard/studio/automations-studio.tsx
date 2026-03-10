@@ -1107,7 +1107,7 @@ export default function AutomationsStudio({
 
           <div className="flex flex-col gap-2 shrink-0">
             <Button
-              onClick={handleGenerate}
+              onClick={() => handleGenerate()}
               disabled={generating || uploading || !canGenerate}
               className="h-12 px-6 bg-[#7F6DE7] hover:bg-[#7F6DE7]/80 text-white font-semibold rounded-xl disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
             >
