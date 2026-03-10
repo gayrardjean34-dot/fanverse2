@@ -17,6 +17,7 @@ const SIDEBAR_AUTOMATIONS = {
   'face-swap': { name: 'EZ Face Swap', icon: '🔄' },
   'ez-face-swap-uncensored': { name: 'EZ Face Swap Semi-Uncensored', icon: '🚀' },
   'outfit-swap': { name: 'Outfit Swap', icon: '👗' },
+  'infinite-carousel': { name: 'Infinite Carousel', icon: '🎠' },
 } as const;
 
 type AutomationId = keyof typeof SIDEBAR_AUTOMATIONS;

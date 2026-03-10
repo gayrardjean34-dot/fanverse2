@@ -69,6 +69,18 @@ function compressImage(file: File, maxWidth = 2048, quality = 0.85): Promise<Fil
   });
 }
 
+// Carousel type descriptions
+const CAROUSEL_TYPE_DESCRIPTIONS = {
+  body: "Wide shot. She's posing somewhere in the place, full body, head-to-toe, wide framing",
+  upper: 'Upper body, waist-up, medium framing',
+  close: 'Tight close-up portrait, face-centered close-up',
+  creative: 'Creative framing, dynamic angle, artistic composition',
+  selfie: 'Selfie. She takes a selfie with one arm extended, smartphone perspective view, front camera',
+} as const;
+
+type CarouselType = keyof typeof CAROUSEL_TYPE_DESCRIPTIONS;
+type CarouselTypes = Record<CarouselType, boolean>;
+
 // Automation definitions
 const AUTOMATIONS = {
   'infinite-selfies': {
@@ -96,7 +108,7 @@ const AUTOMATIONS = {
     name: 'EZ Face Swap Semi-Uncensored (beta)',
     icon: '🚀',
     description: 'Advanced face swap with fewer restrictions - beta version',
-    creditPerImage: 25,
+    creditPerImage: 23,
     requiresRefImage: true,
     maxQuantity: 15,
     modelFilter: 'automation-faceswap-uncensored',
@@ -110,6 +122,16 @@ const AUTOMATIONS = {
     requiresRefImage: true,
     maxQuantity: 1,
     modelFilter: 'automation-outfit-swap',
+  },
+  'infinite-carousel': {
+    id: 'infinite-carousel',
+    name: 'Infinite Carousel',
+    icon: '🎠',
+    description: 'Generate carousel sets with multiple shot types from a reference photo',
+    creditPerImage: 23,
+    requiresRefImage: true,
+    maxQuantity: 20,
+    modelFilter: 'automation-carousel',
   },
 } as const;
 
@@ -139,6 +161,7 @@ function getAutomationName(model: string): string {
   if (model === 'automation-faceswap') return 'EZ Face Swap';
   if (model === 'automation-faceswap-uncensored') return 'EZ Face Swap Semi-Uncensored (beta)';
   if (model === 'automation-outfit-swap') return 'Outfit Swap';
+  if (model === 'automation-carousel') return 'Infinite Carousel';
   return 'Unknown Automation';
 }
 
@@ -390,6 +413,9 @@ export default function AutomationsStudio({
   const [clothesImage, setClothesImage] = useState<{ file: File; preview: string } | null>(null);
   const [clothesPrompt, setClothesPrompt] = useState('');
   const [outfitInputMode, setOutfitInputMode] = useState<'image' | 'prompt'>('image');
+  const [carouselCount, setCarouselCount] = useState(1);
+  const [carouselTypes, setCarouselTypes] = useState<CarouselTypes>({ body: true, upper: true, close: true, creative: true, selfie: true });
+  const [carouselMultiplier, setCarouselMultiplier] = useState(1);
   const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [selectedGen, setSelectedGen] = useState<Generation | null>(null);
@@ -434,10 +460,14 @@ export default function AutomationsStudio({
   const automation = AUTOMATIONS[automationId];
   const isFaceSwap = automationId === 'face-swap' || automationId === 'ez-face-swap-uncensored';
   const isOutfitSwap = automationId === 'outfit-swap';
+  const isInfiniteCarousel = automationId === 'infinite-carousel';
+  const checkedTypesCount = isInfiniteCarousel ? Object.values(carouselTypes).filter(Boolean).length : 0;
   const creditCost = isFaceSwap
     ? swapImages.length * automation.creditPerImage
     : isOutfitSwap
     ? automation.creditPerImage
+    : isInfiniteCarousel
+    ? carouselCount * checkedTypesCount * carouselMultiplier * automation.creditPerImage
     : quantity * automation.creditPerImage;
 
   const { data: history, mutate: mutateHistory } = useSWR<Generation[]>(
@@ -477,6 +507,9 @@ export default function AutomationsStudio({
     setClothesPrompt('');
     setOutfitInputMode('image');
     setQuantity(1);
+    setCarouselCount(1);
+    setCarouselTypes({ body: true, upper: true, close: true, creative: true, selfie: true });
+    setCarouselMultiplier(1);
   }, [selectedAutomation]);
 
   const handleRefSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -631,6 +664,18 @@ export default function AutomationsStudio({
         body = outfitInputMode === 'image'
           ? { automation: selectedAutomation, refUrl, swap: clothesUrl }
           : { automation: selectedAutomation, refUrl, clothe: clothesPrompt.trim() };
+      } else if (isInfiniteCarousel) {
+        body = {
+          automation: selectedAutomation,
+          refUrl,
+          carousel: carouselCount,
+          quant: carouselMultiplier,
+          body: carouselTypes.body,
+          upper: carouselTypes.upper,
+          close: carouselTypes.close,
+          creative: carouselTypes.creative,
+          selfie: carouselTypes.selfie,
+        };
       } else {
         body = { automation: selectedAutomation, refUrl, quantity };
       }
@@ -660,6 +705,8 @@ export default function AutomationsStudio({
     ? referenceImage && swapImages.length > 0
     : isOutfitSwap
     ? referenceImage && (outfitInputMode === 'image' ? !!clothesImage : !!clothesPrompt.trim())
+    : isInfiniteCarousel
+    ? referenceImage && checkedTypesCount > 0
     : referenceImage;
 
   return (
@@ -902,7 +949,66 @@ export default function AutomationsStudio({
               </div>
             )}
 
-            {!isFaceSwap && !isOutfitSwap && (
+            {isInfiniteCarousel && (
+              <div className="flex items-end gap-3 flex-1 flex-wrap">
+                {/* Carousel count */}
+                <div className="w-24 shrink-0">
+                  <Label className="text-xs text-gray-500 mb-1 block">Carousels</Label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="5"
+                    value={carouselCount}
+                    onChange={(e) => setCarouselCount(Math.max(1, Math.min(5, parseInt(e.target.value) || 1)))}
+                    className="w-full bg-[#222] border border-[#333] text-[#FEFEFE] rounded-xl px-3 py-3 text-sm outline-none focus:border-[#7F6DE7]/50 transition-colors h-12"
+                  />
+                </div>
+
+                {/* Shot type checkboxes */}
+                <div className="flex flex-col gap-1 shrink-0">
+                  <Label className="text-xs text-gray-500">Shot types</Label>
+                  <div className="flex gap-1.5">
+                    {(Object.keys(CAROUSEL_TYPE_DESCRIPTIONS) as CarouselType[]).map((type) => (
+                      <button
+                        key={type}
+                        onClick={() => setCarouselTypes((prev) => ({ ...prev, [type]: !prev[type] }))}
+                        title={CAROUSEL_TYPE_DESCRIPTIONS[type]}
+                        className={`flex items-center gap-1.5 px-2.5 h-12 rounded-xl border text-xs font-medium transition-colors ${
+                          carouselTypes[type]
+                            ? 'bg-[#7F6DE7]/20 border-[#7F6DE7] text-[#7F6DE7]'
+                            : 'bg-[#222] border-[#333] text-gray-500 hover:border-[#7F6DE7]/30 hover:text-gray-300'
+                        }`}
+                      >
+                        {carouselTypes[type] ? <CheckSquare className="h-3 w-3 shrink-0" /> : <Square className="h-3 w-3 shrink-0" />}
+                        {type}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Multiplier */}
+                <div className="flex flex-col gap-1 shrink-0">
+                  <Label className="text-xs text-gray-500">Multiplier</Label>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((m) => (
+                      <button
+                        key={m}
+                        onClick={() => setCarouselMultiplier(m)}
+                        className={`w-10 h-12 rounded-xl border text-xs font-bold transition-colors ${
+                          carouselMultiplier === m
+                            ? 'bg-[#7F6DE7] border-[#7F6DE7] text-white'
+                            : 'bg-[#222] border-[#333] text-gray-400 hover:border-[#7F6DE7]/50 hover:text-white'
+                        }`}
+                      >
+                        x{m}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!isFaceSwap && !isOutfitSwap && !isInfiniteCarousel && (
               <div className="w-32">
                 <Label className="text-xs text-gray-500 mb-1 block">How many images</Label>
                 <input

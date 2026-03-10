@@ -9,10 +9,12 @@ const N8N_WEBHOOK_URL = process.env.N8N_SELFIE_WEBHOOK_URL || 'https://n8n.fanve
 const N8N_FACESWAP_WEBHOOK_URL = process.env.N8N_FACESWAP_WEBHOOK_URL || 'https://n8n.fanverse.lol/webhook/ezfaceswapfhdkjsuhjkdfshkfjhdsdsfdfsf';
 const N8N_FACESWAP_UNCENSORED_WEBHOOK_URL = process.env.N8N_FACESWAP_UNCENSORED_WEBHOOK_URL || 'https://n8n.fanverse.lol/webhook/ezfaceswapuncensoredfhdkjsuhjkdfshkfjhdsdsfdfsf';
 const N8N_OUTFIT_SWAP_WEBHOOK_URL = process.env.N8N_OUTFIT_SWAP_WEBHOOK_URL || 'https://n8n.fanverse.lol/webhook/outfitswapjefaisuneurlquisertarioentuletrouverajamaispetitfoudubusklijjfezoiljfe';
+const N8N_CAROUSEL_WEBHOOK_URL = process.env.N8N_CAROUSEL_WEBHOOK_URL || 'https://n8n.fanverse.lol/webhook/infinitcarouselworkflown8nilvaetrechiantafaireluiammaiostracassmglcavalefairelzikfjerslzkfjlkrej';
 const CREDIT_COST_PER_SELFIE = 22;
 const CREDIT_COST_PER_SWAP = 22;
-const CREDIT_COST_PER_SWAP_UNCENSORED = 25;
+const CREDIT_COST_PER_SWAP_UNCENSORED = 23;
 const CREDIT_COST_OUTFIT_SWAP = 15;
+const CREDIT_COST_PER_CAROUSEL_IMAGE = 23;
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,6 +45,10 @@ export async function POST(request: NextRequest) {
 
     if (automation === 'outfit-swap') {
       return handleOutfitSwap(body, user);
+    }
+
+    if (automation === 'infinite-carousel') {
+      return handleInfiniteCarousel(body, user);
     }
 
     // ── Infinite Selfies ──
@@ -299,6 +305,96 @@ async function handleOutfitSwap(body: any, user: { id: number }) {
     generationId: insertedGen.id,
     creditCost: CREDIT_COST_OUTFIT_SWAP,
     quantity: 1,
+  });
+}
+
+// ── Infinite Carousel handler ──
+async function handleInfiniteCarousel(body: any, user: { id: number }) {
+  const refUrl = body.refUrl as string | undefined;
+  const carouselCount = Math.max(1, Math.min(5, parseInt(body.carousel) || 1));
+  const carouselMultiplier = Math.max(1, Math.min(5, parseInt(body.quant) || 1));
+  const types = {
+    body: !!body.body,
+    upper: !!body.upper,
+    close: !!body.close,
+    creative: !!body.creative,
+    selfie: !!body.selfie,
+  };
+
+  if (!refUrl) {
+    return NextResponse.json({ error: 'Reference image is required.' }, { status: 400 });
+  }
+
+  const checkedCount = Object.values(types).filter(Boolean).length;
+  if (checkedCount === 0) {
+    return NextResponse.json({ error: 'At least one shot type must be selected.' }, { status: 400 });
+  }
+
+  const totalImages = carouselCount * checkedCount * carouselMultiplier;
+  const totalCost = totalImages * CREDIT_COST_PER_CAROUSEL_IMAGE;
+
+  const balance = await getUserCreditBalance(user.id);
+  if (balance < totalCost) {
+    return NextResponse.json({
+      error: `Not enough credits. Need ${totalCost}, have ${balance}.`,
+    }, { status: 402 });
+  }
+
+  const batchId = crypto.randomUUID();
+
+  await createCreditTransaction({
+    userId: user.id,
+    amount: -totalCost,
+    type: 'spend',
+    reason: `Automation: ${carouselCount} carousel(s), ${checkedCount} type(s), x${carouselMultiplier}`,
+  });
+
+  const costPerImage = Math.floor(totalCost / totalImages);
+  const remainder = totalCost - costPerImage * totalImages;
+
+  const genValues = Array.from({ length: totalImages }, (_, i) => ({
+    userId: user.id,
+    batchId,
+    model: 'automation-carousel' as const,
+    prompt: `Carousel image ${i + 1}/${totalImages}`,
+    aspectRatio: '1:1' as const,
+    resolution: '1K' as const,
+    referenceImages: [] as string[],
+    status: 'processing' as const,
+    creditCost: i === 0 ? costPerImage + remainder : costPerImage,
+    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+  }));
+
+  const insertedGens = await db.insert(generations).values(genValues).returning();
+
+  const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://fanverse.lol'}/api/automations/callback`;
+
+  fetch(N8N_CAROUSEL_WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ref: refUrl,
+      carousel: carouselCount,
+      quant: carouselMultiplier,
+      body: types.body,
+      upper: types.upper,
+      close: types.close,
+      creative: types.creative,
+      selfie: types.selfie,
+      batchId,
+      generationId: insertedGens[0].id.toString(),
+      callbackUrl,
+    }),
+  }).catch((err) => {
+    console.error('Failed to call n8n carousel webhook:', err);
+  });
+
+  return NextResponse.json({
+    success: true,
+    batchId,
+    generationId: insertedGens[0].id,
+    creditCost: totalCost,
+    quantity: totalImages,
   });
 }
 
