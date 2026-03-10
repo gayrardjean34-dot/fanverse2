@@ -205,7 +205,7 @@ export default function ContactPage() {
           )}
         </div>
 
-        {/* Discord section */}
+        {/* Discord section — hidden for now, re-enable when ready
         <div className="mt-16 pt-8 border-t border-[#333] text-center">
           <p className="text-gray-400 mb-4">For more questions, join us on Discord</p>
           <a
@@ -220,6 +220,7 @@ export default function ContactPage() {
             <span className="text-[#5865F2] font-semibold">Join our Discord</span>
           </a>
         </div>
+        */}
       </div>
     </section>
   );
