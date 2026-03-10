@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db/drizzle';
 import { generations } from '@/lib/db/schema';
+import { uploadToR2FromUrl, isR2Url } from '@/lib/r2';
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,10 +43,21 @@ export async function POST(request: NextRequest) {
         })
         .where(eq(generations.id, gen.id));
     } else if (imageUrl) {
+      // Save to R2 so we own the file (avoids kie.ai URL expiry + eliminates Fast Origin Transfer)
+      let resultUrl = imageUrl;
+      if (!isR2Url(imageUrl)) {
+        try {
+          const ext = imageUrl.split('.').pop()?.split('?')[0] || 'jpg';
+          const key = `results/generate/${gen.id}-${Date.now()}.${ext}`;
+          resultUrl = await uploadToR2FromUrl(imageUrl, key);
+        } catch (err) {
+          console.error('[CALLBACK] R2 upload failed, using original URL:', err);
+        }
+      }
       await db.update(generations)
         .set({
           status: 'completed',
-          resultUrl: imageUrl,
+          resultUrl,
           resultData: body,
           updatedAt: new Date(),
         })
