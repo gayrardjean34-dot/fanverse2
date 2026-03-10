@@ -344,7 +344,7 @@ function GenCard({
 
   return (
     <div
-      className={`relative group rounded-xl overflow-hidden border transition-all cursor-pointer ${
+      className={`relative group rounded-xl overflow-hidden border transition-all duration-200 cursor-pointer hover:scale-105 hover:z-10 ${
         selected
           ? 'border-[#28B8F6] ring-2 ring-[#28B8F6]/30'
           : isFailed
@@ -740,7 +740,7 @@ export default function ModelsStudio({
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 overflow-visible">
             {history.map((gen) => (
               <GenCard
                 key={gen.id} gen={gen}
