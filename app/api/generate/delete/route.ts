@@ -3,10 +3,21 @@ import { eq, and, inArray } from 'drizzle-orm';
 import { db } from '@/lib/db/drizzle';
 import { generations } from '@/lib/db/schema';
 import { getUser } from '@/lib/db/queries';
+import { DeleteObjectsCommand } from '@aws-sdk/client-s3';
 import { del } from '@vercel/blob';
+import { r2, R2_BUCKET, R2_PUBLIC_URL } from '@/lib/r2';
 
-function isBlobUrl(url: string): boolean {
-  return url.includes('vercel-storage.com') || url.includes('public.blob.vercel');
+function isStorageUrl(url: string): boolean {
+  return url.includes('r2.dev') || url.includes('r2.cloudflarestorage.com') ||
+    url.includes('vercel-storage.com') || url.includes('public.blob.vercel');
+}
+
+function isR2Url(url: string): boolean {
+  return url.includes('r2.dev') || url.includes('r2.cloudflarestorage.com');
+}
+
+function r2KeyFromUrl(url: string): string {
+  return url.replace(`${R2_PUBLIC_URL}/`, '');
 }
 
 export async function POST(request: NextRequest) {
@@ -22,18 +33,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No generation IDs provided.' }, { status: 400 });
     }
 
-    // Fetch generations to collect blob URLs before deleting
+    // Fetch generations to collect storage URLs before deleting
     const gens = await db.select()
       .from(generations)
       .where(and(eq(generations.userId, user.id), inArray(generations.id, ids)));
 
-    // Collect all blob URLs to delete
-    const blobUrls: string[] = [];
+    // Separate R2 URLs from legacy Vercel Blob URLs
+    const r2Keys: string[] = [];
+    const vercelBlobUrls: string[] = [];
+
     for (const gen of gens) {
-      if (gen.resultUrl && isBlobUrl(gen.resultUrl)) blobUrls.push(gen.resultUrl);
-      const refs = (gen.referenceImages as string[]) || [];
-      for (const url of refs) {
-        if (isBlobUrl(url)) blobUrls.push(url);
+      const urls: string[] = [];
+      if (gen.resultUrl && isStorageUrl(gen.resultUrl)) urls.push(gen.resultUrl);
+      for (const url of (gen.referenceImages as string[]) || []) {
+        if (isStorageUrl(url)) urls.push(url);
+      }
+      for (const url of urls) {
+        if (isR2Url(url)) r2Keys.push(r2KeyFromUrl(url));
+        else vercelBlobUrls.push(url);
       }
     }
 
@@ -41,12 +58,21 @@ export async function POST(request: NextRequest) {
     await db.delete(generations)
       .where(and(eq(generations.userId, user.id), inArray(generations.id, ids)));
 
-    // Delete blobs (fire and forget, don't fail the request if blob delete fails)
-    if (blobUrls.length > 0) {
-      del(blobUrls).catch((err) => console.error('Blob delete error:', err));
+    // Delete from R2 (fire and forget)
+    if (r2Keys.length > 0) {
+      r2.send(new DeleteObjectsCommand({
+        Bucket: R2_BUCKET,
+        Delete: { Objects: r2Keys.map((Key) => ({ Key })) },
+      })).catch((err) => console.error('R2 delete error:', err));
     }
 
-    return NextResponse.json({ success: true, deleted: ids.length, blobsDeleted: blobUrls.length });
+    // Delete legacy Vercel Blob objects (backward compat)
+    if (vercelBlobUrls.length > 0) {
+      del(vercelBlobUrls).catch((err) => console.error('Blob delete error:', err));
+    }
+
+    const totalDeleted = r2Keys.length + vercelBlobUrls.length;
+    return NextResponse.json({ success: true, deleted: ids.length, blobsDeleted: totalDeleted });
   } catch (error: any) {
     console.error('Delete generations error:', error);
     return NextResponse.json({ error: 'Something went wrong.' }, { status: 500 });

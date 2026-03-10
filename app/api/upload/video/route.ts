@@ -1,33 +1,34 @@
-import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUser } from '@/lib/db/queries';
+import { r2, R2_BUCKET, r2PublicUrl } from '@/lib/r2';
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
+// GET /api/upload/video?filename=xxx.mp4
+// Returns { uploadUrl, publicUrl } — client uploads directly to R2 via presigned PUT
+export async function GET(request: NextRequest) {
   const user = await getUser();
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = (await request.json()) as HandleUploadBody;
+  const filename = request.nextUrl.searchParams.get('filename') || 'video.mp4';
+  const key = `videos/${user.id}/${Date.now()}-${filename}`;
 
   try {
-    const jsonResponse = await handleUpload({
-      body,
-      request,
-      onBeforeGenerateToken: async () => {
-        return {
-          allowedContentTypes: ['video/mp4'],
-          maximumSizeInBytes: 50 * 1024 * 1024, // 50 MB
-          addRandomSuffix: true,
-        };
-      },
-      onUploadCompleted: async ({ blob }) => {
-        console.log('[VIDEO UPLOAD] completed:', blob.url);
-      },
-    });
+    const uploadUrl = await getSignedUrl(
+      r2,
+      new PutObjectCommand({
+        Bucket: R2_BUCKET,
+        Key: key,
+        ContentType: 'video/mp4',
+      }),
+      { expiresIn: 300 }, // 5 minutes
+    );
 
-    return NextResponse.json(jsonResponse);
-  } catch (error) {
-    return NextResponse.json({ error: (error as Error).message }, { status: 400 });
+    return NextResponse.json({ uploadUrl, publicUrl: r2PublicUrl(key) });
+  } catch (error: any) {
+    console.error('Video presign error:', error);
+    return NextResponse.json({ error: error.message || 'Failed to generate upload URL' }, { status: 500 });
   }
 }

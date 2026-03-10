@@ -27,7 +27,6 @@ import {
   Sparkles,
   Film,
 } from 'lucide-react';
-import { upload } from '@vercel/blob/client';
 import { AI_PROVIDERS, ACTIVE_PROVIDER_IDS, type ModelConfig } from '@/lib/ai/providers';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -570,11 +569,16 @@ export default function ModelsStudio({
     setVideoError(null);
     setUploadingVideo(true);
     try {
-      const blob = await upload(file.name, file, {
-        access: 'public',
-        handleUploadUrl: '/api/upload/video',
+      const res = await fetch(`/api/upload/video?filename=${encodeURIComponent(file.name)}`);
+      if (!res.ok) throw new Error('Failed to get upload URL');
+      const { uploadUrl, publicUrl } = await res.json();
+      const putRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: { 'Content-Type': 'video/mp4' },
       });
-      setReferenceVideo(blob.url);
+      if (!putRes.ok) throw new Error('Upload to storage failed');
+      setReferenceVideo(publicUrl);
       setReferenceVideoName(file.name);
     } catch (err: any) {
       setVideoError(err.message || 'Upload failed.');

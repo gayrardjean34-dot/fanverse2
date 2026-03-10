@@ -1,6 +1,7 @@
-import { put } from '@vercel/blob';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUser } from '@/lib/db/queries';
+import { r2, R2_BUCKET, r2PublicUrl } from '@/lib/r2';
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,12 +17,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    const blob = await put(`automations/${user.id}/${Date.now()}-${file.name}`, file, {
-      access: 'public',
-      contentType: file.type || 'image/jpeg',
-    });
+    const key = `automations/${user.id}/${Date.now()}-${file.name}`;
+    await r2.send(new PutObjectCommand({
+      Bucket: R2_BUCKET,
+      Key: key,
+      Body: Buffer.from(await file.arrayBuffer()),
+      ContentType: file.type || 'image/jpeg',
+    }));
 
-    return NextResponse.json({ url: blob.url });
+    return NextResponse.json({ url: r2PublicUrl(key) });
   } catch (error: any) {
     console.error('Upload error:', error);
     return NextResponse.json({ error: error.message || 'Upload failed' }, { status: 500 });
