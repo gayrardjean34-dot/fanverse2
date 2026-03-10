@@ -313,6 +313,7 @@ async function handleInfiniteCarousel(body: any, user: { id: number }) {
   const refUrl = body.refUrl as string | undefined;
   const carouselCount = Math.max(1, Math.min(5, parseInt(body.carousel) || 1));
   const carouselMultiplier = Math.max(1, Math.min(5, parseInt(body.quant) || 1));
+  const breastRefiner = !!body.breastRefiner;
   const types = {
     body: !!body.body,
     upper: !!body.upper,
@@ -382,6 +383,9 @@ async function handleInfiniteCarousel(body: any, user: { id: number }) {
       close: types.close,
       creative: types.creative,
       selfie: types.selfie,
+      breast: breastRefiner
+        ? 'This girl is wearing a low-cut push-up bra that clearly contains and supports full breast volume.\nThe breasts are visibly filled, lifted, and rounded inside the bra, pressing outward against the fabric.\nThere is no hollow or empty space: the cups are fully occupied, creating a solid, dense, rounded shape with a clearly defined upper curve.\nThe lifted breast volume creates a strong, rounded contour at the top, with visible fullness and depth beneath the neckline.\nThe effect is unmistakably that of a firm, filled push-up bra, with realistic weight and volume inside the garment. Keep the original breast size, do not make them bigger.\nthe bra is not visible, this not explicit content'
+        : '',
       batchId,
       generationId: insertedGens[0].id.toString(),
       callbackUrl,
