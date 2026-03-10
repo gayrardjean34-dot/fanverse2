@@ -97,9 +97,25 @@ function isVideoUrl(url: string): boolean {
   return /\.(mp4|webm|mov)/i.test(url);
 }
 
-// ── Download via proxy ──
-function getDownloadUrl(url: string): string {
-  return `/api/generate/download?url=${encodeURIComponent(url)}`;
+// ── Download via proxy (POST to avoid URI_TOO_LONG) ──
+async function downloadFile(url: string) {
+  const res = await fetch('/api/generate/download', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  });
+  if (!res.ok) throw new Error('Download failed');
+  const blob = await res.blob();
+  const contentType = res.headers.get('content-type') || '';
+  const isVideo = contentType.startsWith('video/');
+  const ext = isVideo ? 'mp4' : 'png';
+  const filename = `fanverse-${Date.now()}.${ext}`;
+  const objectUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = objectUrl;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(objectUrl);
 }
 
 // ── Image/Video Lightbox ──
@@ -266,12 +282,12 @@ function MediaModal({
 
         <div className="flex flex-wrap gap-2">
           {gen.resultUrl && (
-            <a
-              href={getDownloadUrl(gen.resultUrl)}
+            <button
+              onClick={() => downloadFile(gen.resultUrl!).catch(() => alert('Download failed'))}
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#28B8F6] text-[#191919] text-sm font-medium hover:bg-[#28B8F6]/80 transition-colors"
             >
               <Download className="h-4 w-4" /> Download
-            </a>
+            </button>
           )}
           {gen.resultUrl && !isVideo && (
             <button
