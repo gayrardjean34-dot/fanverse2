@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { list, del } from '@vercel/blob';
+import { ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3';
+import { r2, R2_BUCKET } from '@/lib/r2';
 
-// Admin-only endpoint to purge old blobs from Vercel Blob storage.
+// Admin-only endpoint to purge old objects from R2 storage.
 // Reference images are only needed during n8n processing (~10 min).
-// This deletes all blobs older than maxAgeHours (default: 2h).
-// Call once to clean up existing storage, then rely on the delete route for ongoing cleanup.
+// This deletes all objects older than maxAgeHours (default: 2h).
 export async function POST(request: NextRequest) {
   const adminSecret = process.env.ADMIN_SECRET;
   const authHeader = request.headers.get('authorization');
@@ -17,27 +17,34 @@ export async function POST(request: NextRequest) {
   const cutoff = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000);
 
   let totalDeleted = 0;
-  let cursor: string | undefined;
+  let continuationToken: string | undefined;
 
   try {
     do {
-      const result = await list({ cursor, limit: 1000 });
+      const result = await r2.send(new ListObjectsV2Command({
+        Bucket: R2_BUCKET,
+        ContinuationToken: continuationToken,
+        MaxKeys: 1000,
+      }));
 
-      const toDelete = result.blobs
-        .filter((b) => new Date(b.uploadedAt) < cutoff)
-        .map((b) => b.url);
+      const toDelete = (result.Contents || [])
+        .filter((obj) => obj.LastModified && obj.LastModified < cutoff && obj.Key)
+        .map((obj) => ({ Key: obj.Key! }));
 
       if (toDelete.length > 0) {
-        await del(toDelete);
+        await r2.send(new DeleteObjectsCommand({
+          Bucket: R2_BUCKET,
+          Delete: { Objects: toDelete },
+        }));
         totalDeleted += toDelete.length;
       }
 
-      cursor = result.cursor;
-    } while (cursor);
+      continuationToken = result.NextContinuationToken;
+    } while (continuationToken);
 
     return NextResponse.json({ success: true, deleted: totalDeleted, cutoff });
   } catch (error: any) {
-    console.error('Blob cleanup error:', error);
+    console.error('R2 cleanup error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
