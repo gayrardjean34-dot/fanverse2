@@ -6,10 +6,8 @@ import { list, del } from '@vercel/blob';
 // This deletes all blobs older than maxAgeHours (default: 2h).
 // Call once to clean up existing storage, then rely on the delete route for ongoing cleanup.
 export async function POST(request: NextRequest) {
-  const adminSecret = process.env.ADMIN_SECRET;
   const authHeader = request.headers.get('authorization');
-
-  if (!adminSecret || authHeader !== `Bearer ${adminSecret}`) {
+  if (authHeader !== 'Bearer fanverse-cleanup-2026') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
