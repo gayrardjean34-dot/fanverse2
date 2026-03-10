@@ -3,6 +3,29 @@ import { eq, and } from 'drizzle-orm';
 import { db } from '@/lib/db/drizzle';
 import { generations } from '@/lib/db/schema';
 import { createCreditTransaction } from '@/lib/db/queries';
+import { uploadToR2FromUrl, uploadToR2FromBase64 } from '@/lib/r2';
+
+// Upload result image to R2 and return the R2 URL.
+// Falls back to original URL/data if upload fails (avoids breaking the flow).
+async function saveResultToR2(
+  imageData: string, // either a URL or a base64 data URL
+  batchId: string,
+  genId: number,
+): Promise<string> {
+  const isBase64 = imageData.startsWith('data:');
+  const ext = isBase64
+    ? (imageData.match(/data:image\/(\w+)/)?.[1] || 'jpg')
+    : (imageData.split('.').pop()?.split('?')[0] || 'jpg');
+  const key = `results/${batchId}/${genId}-${Date.now()}.${ext}`;
+
+  try {
+    if (isBase64) return await uploadToR2FromBase64(imageData, key);
+    return await uploadToR2FromUrl(imageData, key);
+  } catch (err) {
+    console.error('[CALLBACK] R2 upload failed, using original URL:', err);
+    return imageData;
+  }
+}
 
 // n8n calls this endpoint once per generated image (loop)
 // Supports both JSON and multipart/form-data (binary file from n8n)
@@ -15,18 +38,15 @@ export async function POST(request: NextRequest) {
     const contentType = request.headers.get('content-type') || '';
 
     if (contentType.includes('multipart/form-data')) {
-      // n8n sends form-data with binary file + fields
       const formData = await request.formData();
       body = {} as any;
 
       for (const [key, value] of formData.entries()) {
         if (value instanceof File) {
-          // Convert binary file to base64 data URL
           const buffer = Buffer.from(await value.arrayBuffer());
           const mimeType = value.type || 'image/jpeg';
           body.imageBase64 = `data:${mimeType};base64,${buffer.toString('base64')}`;
         } else {
-          // Parse numeric strings for IDs, booleans for flags
           const str = value as string;
           if (str === 'true') {
             body[key] = true;
@@ -54,7 +74,6 @@ export async function POST(request: NextRequest) {
         await db.update(generations)
           .set({ status: 'failed', error, updatedAt: new Date() })
           .where(eq(generations.id, generationId));
-        // Refund credits on error
         if (gen && gen.creditCost > 0 && gen.status !== 'failed') {
           await createCreditTransaction({
             userId: gen.userId,
@@ -67,16 +86,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, status: 'failed' });
     }
 
-    // Single image mode (from n8n loop — one callback per image)
-    const singleImage = imageBase64 || imageUrl;
-    if (singleImage) {
-      // Find the next "processing" generation in this batch to fill
+    const resultData: Record<string, any> = {};
+    if (cleanifyFailed === true || cleanifyFailed === 'true') {
+      resultData.cleanifyFailed = true;
+    }
+
+    // Single image mode (one callback per image)
+    const rawImage = imageBase64 || imageUrl;
+    if (rawImage) {
       const batchGens = batchId
         ? await db.select().from(generations)
             .where(and(eq(generations.batchId, batchId), eq(generations.status, 'processing')))
         : [];
 
-      // Also try by generationId as fallback
       let targetGen = batchGens.length > 0 ? batchGens[0] : null;
 
       if (!targetGen && generationId) {
@@ -88,16 +110,12 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'No pending generation found for this batch' }, { status: 404 });
       }
 
-      // Build resultData with cleanifyFailed flag
-      const resultData: Record<string, any> = {};
-      if (cleanifyFailed === true || cleanifyFailed === 'true') {
-        resultData.cleanifyFailed = true;
-      }
+      const resultUrl = await saveResultToR2(rawImage, batchId || targetGen.batchId, targetGen.id);
 
       await db.update(generations)
         .set({
           status: 'completed',
-          resultUrl: singleImage,
+          resultUrl,
           resultData: Object.keys(resultData).length > 0 ? resultData : null,
           updatedAt: new Date(),
         })
@@ -112,31 +130,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No image provided' }, { status: 400 });
     }
 
-    // Find all processing generations in the batch
     const batchGens = batchId
       ? await db.select().from(generations)
           .where(and(eq(generations.batchId, batchId), eq(generations.status, 'processing')))
       : [];
 
-    const resultData: Record<string, any> = {};
-    if (cleanifyFailed === true || cleanifyFailed === 'true') {
-      resultData.cleanifyFailed = true;
-    }
-
-    // Fill batch generations one by one
     for (let i = 0; i < allImages.length; i++) {
+      const targetGen = i < batchGens.length ? batchGens[i] : batchGens[0] || null;
+      if (!targetGen) continue;
+
+      const resultUrl = await saveResultToR2(allImages[i], batchId || targetGen.batchId, targetGen.id);
+
       if (i < batchGens.length) {
-        // Update existing processing generation
         await db.update(generations)
           .set({
             status: 'completed',
-            resultUrl: allImages[i],
+            resultUrl,
             resultData: Object.keys(resultData).length > 0 ? resultData : null,
             updatedAt: new Date(),
           })
           .where(eq(generations.id, batchGens[i].id));
-      } else if (batchGens.length > 0) {
-        // More images than expected — create extra entries
+      } else {
         const original = batchGens[0];
         await db.insert(generations).values({
           userId: original.userId,
@@ -147,7 +161,7 @@ export async function POST(request: NextRequest) {
           resolution: '1K',
           referenceImages: [],
           status: 'completed',
-          resultUrl: allImages[i],
+          resultUrl,
           resultData: Object.keys(resultData).length > 0 ? resultData : null,
           creditCost: 0,
           expiresAt: original.expiresAt,
