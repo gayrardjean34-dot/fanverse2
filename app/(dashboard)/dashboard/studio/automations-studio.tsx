@@ -152,18 +152,14 @@ type Generation = {
 };
 
 // ── Helper functions ──
+// Download directly from CDN in browser — no Vercel proxy, no bandwidth cost
 async function downloadFile(url: string) {
-  const res = await fetch('/api/generate/download', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url }),
-  });
-  if (!res.ok) throw new Error('Download failed');
-  const blob = await res.blob();
-  const contentType = res.headers.get('content-type') || '';
-  const isVideo = contentType.startsWith('video/');
+  const isVideo = url.includes('.mp4') || url.includes('.webm');
   const ext = isVideo ? 'mp4' : 'png';
   const filename = `fanverse-${Date.now()}.${ext}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Download failed');
+  const blob = await res.blob();
   const objectUrl = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = objectUrl;
