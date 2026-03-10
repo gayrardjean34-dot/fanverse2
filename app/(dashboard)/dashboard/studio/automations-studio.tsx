@@ -416,6 +416,8 @@ export default function AutomationsStudio({
   const [carouselCount, setCarouselCount] = useState(1);
   const [carouselTypes, setCarouselTypes] = useState<CarouselTypes>({ body: true, upper: true, close: true, creative: true, selfie: true });
   const [carouselMultiplier, setCarouselMultiplier] = useState(1);
+  const [carouselRatio, setCarouselRatio] = useState<'1:1' | '2:3' | '3:4' | '9:16'>('3:4');
+  const [breastRefiner, setBreastRefiner] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [selectedGen, setSelectedGen] = useState<Generation | null>(null);
@@ -510,6 +512,8 @@ export default function AutomationsStudio({
     setCarouselCount(1);
     setCarouselTypes({ body: true, upper: true, close: true, creative: true, selfie: true });
     setCarouselMultiplier(1);
+    setCarouselRatio('3:4');
+    setBreastRefiner(false);
   }, [selectedAutomation]);
 
   const handleRefSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -675,6 +679,8 @@ export default function AutomationsStudio({
           close: carouselTypes.close,
           creative: carouselTypes.creative,
           selfie: carouselTypes.selfie,
+          ratio: carouselRatio,
+          breastRefiner,
         };
       } else {
         body = { automation: selectedAutomation, refUrl, quantity };
@@ -1004,6 +1010,43 @@ export default function AutomationsStudio({
                       </button>
                     ))}
                   </div>
+                </div>
+
+                {/* Aspect Ratio */}
+                <div className="flex flex-col gap-1 shrink-0">
+                  <Label className="text-xs text-gray-500">Ratio</Label>
+                  <div className="flex gap-1">
+                    {(['1:1', '2:3', '3:4', '9:16'] as const).map((r) => (
+                      <button
+                        key={r}
+                        onClick={() => setCarouselRatio(r)}
+                        className={`px-2.5 h-12 rounded-xl border text-xs font-bold transition-colors ${
+                          carouselRatio === r
+                            ? 'bg-[#7F6DE7] border-[#7F6DE7] text-white'
+                            : 'bg-[#222] border-[#333] text-gray-400 hover:border-[#7F6DE7]/50 hover:text-white'
+                        }`}
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Breast Refiner */}
+                <div className="flex flex-col gap-1 shrink-0">
+                  <Label className="text-xs text-gray-500 invisible">opt</Label>
+                  <button
+                    onClick={() => setBreastRefiner((v) => !v)}
+                    title='Enhance the shape of the breasts to make them more rounded and centered, just like with a push-up bra.'
+                    className={`flex items-center gap-2 px-3 h-12 rounded-xl border text-xs font-medium transition-colors ${
+                      breastRefiner
+                        ? 'bg-[#7F6DE7]/20 border-[#7F6DE7] text-[#7F6DE7]'
+                        : 'bg-[#222] border-[#333] text-gray-500 hover:border-[#7F6DE7]/30 hover:text-gray-300'
+                    }`}
+                  >
+                    {breastRefiner ? <CheckSquare className="h-3.5 w-3.5 shrink-0" /> : <Square className="h-3.5 w-3.5 shrink-0" />}
+                    Breast refiner
+                  </button>
                 </div>
               </div>
             )}
