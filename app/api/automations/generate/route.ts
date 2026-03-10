@@ -376,6 +376,7 @@ async function handleInfiniteCarousel(body: any, user: { id: number }) {
       ref: refUrl,
       carousel: carouselCount,
       quant: carouselMultiplier,
+      wavemax: checkedCount,
       body: types.body,
       upper: types.upper,
       close: types.close,
