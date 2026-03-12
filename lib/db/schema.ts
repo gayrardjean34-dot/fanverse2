@@ -270,6 +270,17 @@ export type NewActivityLog = typeof activityLogs.$inferInsert;
 export type Invitation = typeof invitations.$inferSelect;
 export type NewInvitation = typeof invitations.$inferInsert;
 export type CreditTransaction = typeof creditLedger.$inferSelect;
+export const promoCodes = pgTable('promo_codes', {
+  id: serial('id').primaryKey(),
+  code: varchar('code', { length: 50 }).notNull().unique(),
+  credits: integer('credits').notNull(),
+  usedByUserId: integer('used_by_user_id').references(() => users.id),
+  usedAt: timestamp('used_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export type PromoCode = typeof promoCodes.$inferSelect;
+
 export const contactMessages = pgTable('contact_messages', {
   id: serial('id').primaryKey(),
   userId: integer('user_id')
