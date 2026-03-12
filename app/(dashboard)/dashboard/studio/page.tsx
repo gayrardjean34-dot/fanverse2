@@ -1,16 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import ModelsStudio from './models-studio';
 import AutomationsStudio from './automations-studio';
 import { AI_PROVIDERS } from '@/lib/ai/providers';
-import { ChevronDown } from 'lucide-react';
 
 // ── Data ────────────────────────────────────────────────────────────────────
 
-// Custom order: nano-banana-2 right below nano-banana-pro
 const IMAGE_MODEL_IDS = ['nano-banana-pro', 'nano-banana-2', 'seedream-4.5'];
-const VIDEO_MODEL_IDS = ['grok-imagine', 'kling-3.0', 'kling-2.6', 'kling-motion-control'];
+const VIDEO_MODEL_IDS = ['grok-imagine', 'kling-3.0', 'kling-2.6', 'kling-motion-control', 'kling-motion-control-3.0'];
 
 const SIDEBAR_AUTOMATIONS = {
   'infinite-carousel': { name: 'Infinite Carousel', icon: '🎠' },
@@ -73,7 +72,6 @@ function ModelItem({
           {provider.name}
         </span>
       </div>
-      {/* Hover shimmer */}
       {!isSelected && (
         <div className="absolute inset-0 bg-gradient-to-r from-[#28B8F6]/0 via-[#28B8F6]/3 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
       )}
@@ -133,14 +131,23 @@ function AutomationItem({
   );
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
+// ── Inner Page (reads search params) ─────────────────────────────────────────
 
-export default function StudioPage() {
+function StudioInner() {
+  const searchParams = useSearchParams();
+  const modelParam = searchParams.get('model');
+
   const [activeSection, setActiveSection] = useState<ActiveSection>('models');
   const [selectedModel, setSelectedModel] = useState<string>('nano-banana-pro');
   const [selectedAutomation, setSelectedAutomation] = useState<AutomationId>('infinite-carousel');
-  const [modelsExpanded, setModelsExpanded] = useState(true);
-  const [automationsExpanded, setAutomationsExpanded] = useState(false);
+
+  // Apply model from URL param on mount
+  useEffect(() => {
+    if (modelParam && AI_PROVIDERS[modelParam]) {
+      setSelectedModel(modelParam);
+      setActiveSection('models');
+    }
+  }, [modelParam]);
 
   return (
     <div className="flex h-[calc(100dvh-68px)] bg-[#191919]">
@@ -150,10 +157,7 @@ export default function StudioPage() {
 
         {/* ── Models Section ── */}
         <div>
-          <button
-            onClick={() => setModelsExpanded((v) => !v)}
-            className="w-full flex items-center justify-between px-5 py-4 group transition-colors hover:bg-[#1d1d1d] cursor-pointer"
-          >
+          <div className="w-full flex items-center px-5 py-4">
             <span className="flex items-center gap-3">
               <span
                 className={`w-2 h-2 rounded-full transition-all duration-300 ${
@@ -164,50 +168,37 @@ export default function StudioPage() {
               />
               <span
                 className={`text-[13px] font-bold tracking-[0.15em] uppercase transition-colors duration-200 ${
-                  activeSection === 'models'
-                    ? 'text-[#28B8F6]'
-                    : 'text-gray-200 group-hover:text-white'
+                  activeSection === 'models' ? 'text-[#28B8F6]' : 'text-gray-200'
                 }`}
               >
                 Models
               </span>
             </span>
-            <ChevronDown
-              className={`h-4 w-4 text-gray-600 group-hover:text-gray-400 transition-transform duration-300 ${
-                modelsExpanded ? 'rotate-180' : ''
-              }`}
-            />
-          </button>
-
-          <div
-            className={`overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out ${
-              modelsExpanded ? 'max-h-[700px] opacity-100' : 'max-h-0 opacity-0'
-            }`}
-          >
-            {/* Images sub-group */}
-            <SubGroupLabel>Images</SubGroupLabel>
-            {IMAGE_MODEL_IDS.map((id) => (
-              <ModelItem
-                key={id}
-                id={id}
-                isSelected={activeSection === 'models' && selectedModel === id}
-                onClick={() => { setSelectedModel(id); setActiveSection('models'); }}
-              />
-            ))}
-
-            {/* Videos sub-group */}
-            <SubGroupLabel>Videos</SubGroupLabel>
-            {VIDEO_MODEL_IDS.map((id) => (
-              <ModelItem
-                key={id}
-                id={id}
-                isSelected={activeSection === 'models' && selectedModel === id}
-                onClick={() => { setSelectedModel(id); setActiveSection('models'); }}
-              />
-            ))}
-
-            <div className="h-2" />
           </div>
+
+          {/* Images sub-group */}
+          <SubGroupLabel>Images</SubGroupLabel>
+          {IMAGE_MODEL_IDS.map((id) => (
+            <ModelItem
+              key={id}
+              id={id}
+              isSelected={activeSection === 'models' && selectedModel === id}
+              onClick={() => { setSelectedModel(id); setActiveSection('models'); }}
+            />
+          ))}
+
+          {/* Videos sub-group */}
+          <SubGroupLabel>Videos</SubGroupLabel>
+          {VIDEO_MODEL_IDS.map((id) => (
+            <ModelItem
+              key={id}
+              id={id}
+              isSelected={activeSection === 'models' && selectedModel === id}
+              onClick={() => { setSelectedModel(id); setActiveSection('models'); }}
+            />
+          ))}
+
+          <div className="h-2" />
         </div>
 
         {/* Divider */}
@@ -215,10 +206,7 @@ export default function StudioPage() {
 
         {/* ── Automations Section ── */}
         <div>
-          <button
-            onClick={() => setAutomationsExpanded((v) => !v)}
-            className="w-full flex items-center justify-between px-5 py-4 group transition-colors hover:bg-[#1d1d1d] cursor-pointer"
-          >
+          <div className="w-full flex items-center px-5 py-4">
             <span className="flex items-center gap-3">
               <span
                 className={`w-2 h-2 rounded-full transition-all duration-300 ${
@@ -229,45 +217,31 @@ export default function StudioPage() {
               />
               <span
                 className={`text-[13px] font-bold tracking-[0.15em] uppercase transition-colors duration-200 ${
-                  activeSection === 'automations'
-                    ? 'text-[#7F6DE7]'
-                    : 'text-gray-200 group-hover:text-white'
+                  activeSection === 'automations' ? 'text-[#7F6DE7]' : 'text-gray-200'
                 }`}
               >
                 Automations
               </span>
             </span>
-            <ChevronDown
-              className={`h-4 w-4 text-gray-600 group-hover:text-gray-400 transition-transform duration-300 ${
-                automationsExpanded ? 'rotate-180' : ''
-              }`}
-            />
-          </button>
-
-          <div
-            className={`overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out ${
-              automationsExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
-            }`}
-          >
-            {(Object.entries(SIDEBAR_AUTOMATIONS) as [AutomationId, { name: string; icon: string }][]).map(
-              ([id, { name, icon }]) => (
-                <AutomationItem
-                  key={id}
-                  id={id}
-                  name={name}
-                  icon={icon}
-                  isSelected={activeSection === 'automations' && selectedAutomation === id}
-                  hot={id === 'infinite-carousel'}
-                  onClick={() => {
-                    setSelectedAutomation(id);
-                    setActiveSection('automations');
-                    if (!automationsExpanded) setAutomationsExpanded(true);
-                  }}
-                />
-              )
-            )}
-            <div className="h-2" />
           </div>
+
+          {(Object.entries(SIDEBAR_AUTOMATIONS) as [AutomationId, { name: string; icon: string }][]).map(
+            ([id, { name, icon }]) => (
+              <AutomationItem
+                key={id}
+                id={id}
+                name={name}
+                icon={icon}
+                isSelected={activeSection === 'automations' && selectedAutomation === id}
+                hot={id === 'infinite-carousel'}
+                onClick={() => {
+                  setSelectedAutomation(id);
+                  setActiveSection('automations');
+                }}
+              />
+            )
+          )}
+          <div className="h-2" />
         </div>
 
         <div className="flex-1" />
@@ -285,5 +259,15 @@ export default function StudioPage() {
         )}
       </div>
     </div>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
+
+export default function StudioPage() {
+  return (
+    <Suspense fallback={<div className="flex h-[calc(100dvh-68px)] bg-[#191919]" />}>
+      <StudioInner />
+    </Suspense>
   );
 }

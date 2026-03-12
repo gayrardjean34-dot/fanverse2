@@ -132,12 +132,30 @@ export const AI_PROVIDERS: Record<string, ModelConfig> = {
     getCreditCost: () => 7,
   },
   'kling-motion-control': {
-    name: 'Kling Motion Control',
+    name: 'Kling Motion Control 2.6',
     envKey: 'KIE_API_KEY',
     description: 'Animate an image by transferring motion from a reference video. Upload an image and an mp4 video to drive the movement.',
     icon: '🎭',
     type: 'video',
     apiModel: 'kling-2.6/motion-control',
+    requiresReferenceVideo: true,
+    supportsDuration: true,
+    durations: ['5', '10'],
+    defaultDuration: '5',
+    resolutions: ['720p', '1080p'],
+    getCreditCost: ({ duration, resolution }) => {
+      const d = parseInt(duration || '5');
+      const is1080 = resolution === '1080p';
+      return d * (is1080 ? 9 : 6);
+    },
+  },
+  'kling-motion-control-3.0': {
+    name: 'Kling Motion Control 3.0',
+    envKey: 'KIE_API_KEY',
+    description: 'Latest Kling Motion Control. Animate an image by transferring motion from a reference video at higher quality.',
+    icon: '🎭',
+    type: 'video',
+    apiModel: 'kling-3.0/motion-control',
     requiresReferenceVideo: true,
     supportsDuration: true,
     durations: ['5', '10'],

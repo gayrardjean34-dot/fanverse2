@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { CheckCircle, Clock, Film, Image as ImageIcon } from 'lucide-react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { CheckCircle, Clock, Film, Image as ImageIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AI_PROVIDERS, ACTIVE_PROVIDER_IDS } from '@/lib/ai/providers';
 
 // ── Vitrine items with per-photo captions ─────────────────────────────────────
@@ -18,28 +19,43 @@ const GRADIENT = 'linear-gradient(135deg, rgba(40,184,246,0.85) 0%, rgba(127,109
 
 // ── Model groups ──────────────────────────────────────────────────────────────
 const LEFT_MODEL_IDS  = ['nano-banana-pro', 'nano-banana-2', 'grok-imagine'];
-const RIGHT_MODEL_IDS = ['kling-3.0', 'kling-2.6', 'kling-motion-control'];
+const RIGHT_MODEL_IDS = ['kling-3.0', 'kling-2.6', 'kling-motion-control', 'kling-motion-control-3.0'];
 const BOTTOM_MODEL_ID = 'seedream-4.5';
 
 // ── Vitrine Slideshow ─────────────────────────────────────────────────────────
 function VitrineSlideshow() {
   const [current, setCurrent] = useState(0);
   const [captionVisible, setCaptionVisible] = useState(true);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
+  const startInterval = useCallback(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => {
       setCaptionVisible(false);
       setTimeout(() => {
         setCurrent((c) => (c + 1) % VITRINE_ITEMS.length);
         setCaptionVisible(true);
       }, 350);
     }, 4000);
-    return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    startInterval();
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [startInterval]);
+
+  const navigate = (dir: 1 | -1) => {
+    setCaptionVisible(false);
+    setTimeout(() => {
+      setCurrent((c) => (c + dir + VITRINE_ITEMS.length) % VITRINE_ITEMS.length);
+      setCaptionVisible(true);
+    }, 200);
+    startInterval();
+  };
 
   return (
     <div className="relative">
-      {/* Caption badge — peeks out top-right of the photo */}
+      {/* Caption badge */}
       <div
         className="absolute -top-5 -right-4 z-20 px-3 py-2 rounded-xl shadow-xl max-w-[70%] text-right"
         style={{
@@ -66,7 +82,7 @@ function VitrineSlideshow() {
           />
         ))}
 
-        {/* Up to 4K Quality badge — top left */}
+        {/* Up to 4K Quality badge */}
         <div
           className="absolute top-3 left-3 z-10 flex items-center px-2.5 py-1 rounded-lg backdrop-blur-sm"
           style={{ background: GRADIENT }}
@@ -75,15 +91,32 @@ function VitrineSlideshow() {
         </div>
 
         {/* Subtle gradient at bottom */}
-        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
+        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+
+        {/* Navigation arrows */}
+        <button
+          onClick={() => navigate(-1)}
+          className="absolute left-3 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm border border-white/15 text-white/70 hover:text-white hover:bg-black/60 hover:border-white/30 transition-all duration-200"
+          aria-label="Previous"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <button
+          onClick={() => navigate(1)}
+          className="absolute right-3 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm border border-white/15 text-white/70 hover:text-white hover:bg-black/60 hover:border-white/30 transition-all duration-200"
+          aria-label="Next"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
 
         {/* Dot indicators */}
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
           {VITRINE_ITEMS.map((_, i) => (
-            <div
+            <button
               key={i}
+              onClick={() => { navigate(i < current ? -1 : 1); setCurrent(i); startInterval(); }}
               className={`rounded-full transition-all duration-300 ${
-                i === current ? 'w-4 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/35'
+                i === current ? 'w-4 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/35 hover:bg-white/60'
               }`}
             />
           ))}
@@ -97,6 +130,7 @@ function VitrineSlideshow() {
 function ModelCard({ id, isActive, index }: { id: string; isActive: boolean; index: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const el = ref.current;
@@ -114,7 +148,8 @@ function ModelCard({ id, isActive, index }: { id: string; isActive: boolean; ind
   return (
     <div
       ref={ref}
-      className="bg-[#111]/70 backdrop-blur-sm border border-white/8 rounded-xl px-4 py-3.5 hover:border-[#28B8F6]/30 hover:bg-[#111]/90 transition-all duration-200 cursor-default"
+      onClick={() => router.push(`/dashboard/studio?model=${id}`)}
+      className="bg-[#111]/70 backdrop-blur-sm border border-white/8 rounded-xl px-4 py-3.5 hover:border-[#28B8F6]/40 hover:bg-[#111]/90 transition-all duration-200 cursor-pointer"
       style={{
         opacity: visible ? 1 : 0,
         transform: visible ? 'translateY(0)' : 'translateY(20px)',
