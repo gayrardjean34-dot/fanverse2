@@ -19,9 +19,9 @@ import useSWR, { mutate } from 'swr';
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 const navLinks = [
-  { href: '/pricing', label: 'Pricing', icon: CreditCard },
   { href: '/dashboard/studio', label: 'Studio', icon: Paintbrush },
   { href: '/dashboard/workflows', label: 'Automations', icon: Workflow },
+  { href: '/pricing', label: 'Pricing', icon: CreditCard },
   { href: '/contact', label: 'Contact', icon: MessageCircle },
 ];
 
