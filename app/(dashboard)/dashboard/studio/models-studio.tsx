@@ -15,8 +15,6 @@ import {
   ImagePlus,
   X,
   Coins,
-  ChevronDown,
-  ChevronUp,
   Bookmark,
   Trash2,
   CheckSquare,
@@ -459,7 +457,6 @@ export default function ModelsStudio({
 }) {
   const [prompt, setPrompt] = useState('');
   const [systemPrompt, setSystemPrompt] = useState('');
-  const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [aspectRatio, setAspectRatio] = useState('1:1');
   const [resolution, setResolution] = useState('1K');
   const [temperature, setTemperature] = useState<string>('');
@@ -469,7 +466,6 @@ export default function ModelsStudio({
   const [historyLimit, setHistoryLimit] = useState(30);
   const [referenceImages, setReferenceImages] = useState<RefImg[]>([]);
   const [generating, setGenerating] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [selectedGen, setSelectedGen] = useState<Generation | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -857,32 +853,19 @@ export default function ModelsStudio({
         {/* System prompt — only for image models that support it */}
         {(model === 'nano-banana-pro' || model === 'nano-banana-2') && (
           <div className="mb-3">
-            <button onClick={() => setShowSystemPrompt(!showSystemPrompt)}
-              className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 mb-1 transition-colors">
-              {showSystemPrompt ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
-              System Prompt
-            </button>
-            {showSystemPrompt && (
-              <textarea
-                className="w-full bg-[#222] border border-[#333] text-[#FEFEFE] rounded-xl px-4 py-3 text-sm resize-none outline-none focus:border-[#28B8F6]/50 transition-colors placeholder-gray-500"
-                rows={3}
-                placeholder="Optional system prompt to guide the AI behavior..."
-                value={systemPrompt}
-                onChange={(e) => setSystemPrompt(e.target.value)}
-              />
-            )}
+            <span className="text-xs text-gray-500 block mb-1">System Prompt</span>
+            <textarea
+              className="w-full bg-[#222] border border-[#333] text-[#FEFEFE] rounded-xl px-4 py-3 text-sm resize-none outline-none focus:border-[#28B8F6]/50 transition-colors placeholder-gray-500"
+              rows={3}
+              placeholder="Optional system prompt to guide the AI behavior..."
+              value={systemPrompt}
+              onChange={(e) => setSystemPrompt(e.target.value)}
+            />
           </div>
         )}
 
         {/* Model-specific parameters */}
-        <button onClick={() => setShowAdvanced(!showAdvanced)}
-          className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 mb-3 transition-colors">
-          {showAdvanced ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
-          Parameters
-        </button>
-
-        {showAdvanced && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-3">
             {/* Aspect ratio — always shown */}
             <div>
               <Label className="text-xs text-gray-500">Aspect Ratio</Label>
@@ -987,7 +970,6 @@ export default function ModelsStudio({
               </select>
             </div>
           </div>
-        )}
 
         {/* Prompt row */}
         <div className="flex gap-3 items-end">
