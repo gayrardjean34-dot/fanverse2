@@ -3,9 +3,22 @@ export async function register() {
   if (process.env.NEXT_RUNTIME !== 'nodejs') return;
 
   try {
+    const { client } = await import('@/lib/db/drizzle');
     const { db } = await import('@/lib/db/drizzle');
     const { promoCodes } = await import('@/lib/db/schema');
     const { isNull, count } = await import('drizzle-orm');
+
+    // Create the table if it doesn't exist
+    await client`
+      CREATE TABLE IF NOT EXISTS promo_codes (
+        id SERIAL PRIMARY KEY,
+        code VARCHAR(50) NOT NULL UNIQUE,
+        credits INTEGER NOT NULL,
+        used_by_user_id INTEGER REFERENCES users(id),
+        used_at TIMESTAMP,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `;
 
     // Count how many unused codes we have
     const [{ value }] = await db
