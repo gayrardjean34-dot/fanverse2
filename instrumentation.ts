@@ -61,6 +61,12 @@ export async function register() {
         .onConflictDoNothing();
     }
 
+    // Admin 10k credit code (always inserted, ignore if already exists)
+    await db
+      .insert(promoCodes)
+      .values({ code: 'FV-ADMIN-X9K2-10K', credits: 10000 })
+      .onConflictDoNothing();
+
     console.log('[promo] Seeded promo codes into database.');
   } catch (err) {
     // Non-fatal — log and continue

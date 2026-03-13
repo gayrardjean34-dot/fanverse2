@@ -1113,16 +1113,21 @@ export default function AutomationsStudio({
             )}
 
             {!isFaceSwap && !isOutfitSwap && !isInfiniteCarousel && (
-              <div className="w-32">
-                <Label className="text-xs text-gray-500 mb-1 block">How many images</Label>
-                <input
-                  type="number"
-                  min="1"
-                  max={automation.maxQuantity}
-                  value={quantity}
-                  onChange={(e) => setQuantity(Math.max(1, Math.min(automation.maxQuantity, parseInt(e.target.value) || 1)))}
-                  className="w-full bg-[#222] border border-[#333] text-[#FEFEFE] rounded-xl px-4 py-3 text-sm outline-none focus:border-[#7F6DE7]/50 transition-colors h-12"
-                />
+              <div className="flex items-end gap-3">
+                {automationId === 're-pose' && (
+                  <span className="text-xs text-orange-400/80 self-center">⚠️ not work all time with selfies</span>
+                )}
+                <div className="w-32">
+                  <Label className="text-xs text-gray-500 mb-1 block">How many images</Label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={automation.maxQuantity}
+                    value={quantity}
+                    onChange={(e) => setQuantity(Math.max(1, Math.min(automation.maxQuantity, parseInt(e.target.value) || 1)))}
+                    className="w-full bg-[#222] border border-[#333] text-[#FEFEFE] rounded-xl px-4 py-3 text-sm outline-none focus:border-[#7F6DE7]/50 transition-colors h-12"
+                  />
+                </div>
               </div>
             )}
 

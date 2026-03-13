@@ -9,7 +9,7 @@ import { AI_PROVIDERS } from '@/lib/ai/providers';
 // ── Data ────────────────────────────────────────────────────────────────────
 
 const IMAGE_MODEL_IDS = ['nano-banana-pro', 'nano-banana-2', 'seedream-4.5'];
-const VIDEO_MODEL_IDS = ['grok-imagine', 'kling-3.0', 'kling-2.6', 'kling-motion-control', 'kling-motion-control-3.0'];
+const VIDEO_MODEL_IDS = ['kling-3.0', 'kling-2.6', 'kling-motion-control-3.0', 'kling-motion-control', 'grok-imagine'];
 
 const SIDEBAR_AUTOMATIONS = {
   'infinite-carousel': { name: 'Infinite Carousel', icon: '🎠' },
