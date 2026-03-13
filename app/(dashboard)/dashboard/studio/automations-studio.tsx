@@ -1115,7 +1115,7 @@ export default function AutomationsStudio({
             {!isFaceSwap && !isOutfitSwap && !isInfiniteCarousel && (
               <div className="flex items-end gap-3">
                 {automationId === 're-pose' && (
-                  <span className="text-xs text-orange-400/80 self-center">⚠️ not work all time</span>
+                  <span className="text-xs text-orange-400/80 self-center">⚠️ not work all time with selfies</span>
                 )}
                 <div className="w-32">
                   <Label className="text-xs text-gray-500 mb-1 block">How many images</Label>
