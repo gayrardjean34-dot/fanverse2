@@ -35,7 +35,7 @@ export const AI_PROVIDERS: Record<string, ModelConfig> = {
     },
   },
   'grok-imagine': {
-    name: 'Grok Imagine',
+    name: 'Grok Imagine (Semi NSFW)',
     envKey: 'KIE_API_KEY',
     description: 'Text-to-video generation powered by xAI. Normal and fast modes.',
     icon: '🚀',
