@@ -10,6 +10,7 @@ const N8N_FACESWAP_WEBHOOK_URL = process.env.N8N_FACESWAP_WEBHOOK_URL || 'https:
 const N8N_FACESWAP_UNCENSORED_WEBHOOK_URL = process.env.N8N_FACESWAP_UNCENSORED_WEBHOOK_URL || 'https://n8n.fanverse.lol/webhook/ezfaceswapuncensoredfhdkjsuhjkdfshkfjhdsdsfdfsf';
 const N8N_OUTFIT_SWAP_WEBHOOK_URL = process.env.N8N_OUTFIT_SWAP_WEBHOOK_URL || 'https://n8n.fanverse.lol/webhook/outfitswapjefaisuneurlquisertarioentuletrouverajamaispetitfoudubusklijjfezoiljfe';
 const N8N_CAROUSEL_WEBHOOK_URL = process.env.N8N_CAROUSEL_WEBHOOK_URL || 'https://n8n.fanverse.lol/webhook/infinitcarouselworkflown8nilvaetrechiantafaireluiammaiostracassmglcavalefairelzikfjerslzkfjlkrej';
+const N8N_REPOSE_WEBHOOK_URL = process.env.N8N_REPOSE_WEBHOOK_URL || 'https://n8n.fanverse.lol/webhook/reposewfetvoilaundeplusjaiaucuneideesijfaiscapourrienoupasmaisjsprwindessouswlhlessgoooooo12321352464577648';
 const CREDIT_COST_PER_SELFIE = 22;
 const CREDIT_COST_PER_SWAP = 22;
 const CREDIT_COST_PER_SWAP_UNCENSORED = 23;
@@ -49,6 +50,10 @@ export async function POST(request: NextRequest) {
 
     if (automation === 'infinite-carousel') {
       return handleInfiniteCarousel(body, user);
+    }
+
+    if (automation === 're-pose') {
+      return handleRepose(body, user);
     }
 
     // ── Infinite Selfies ──
@@ -402,6 +407,76 @@ async function handleInfiniteCarousel(body: any, user: { id: number }) {
     generationId: insertedGens[0].id,
     creditCost: totalCost,
     quantity: totalImages,
+  });
+}
+
+// ── Re-pose handler ──
+async function handleRepose(body: any, user: { id: number }) {
+  const refUrl = body.refUrl as string | undefined;
+  const quantity = Math.max(1, Math.min(10, parseInt(body.quantity) || 1));
+
+  if (!refUrl) {
+    return NextResponse.json({ error: 'Reference image is required.' }, { status: 400 });
+  }
+
+  const totalCost = quantity * 22;
+
+  const balance = await getUserCreditBalance(user.id);
+  if (balance < totalCost) {
+    return NextResponse.json({
+      error: `Not enough credits. Need ${totalCost}, have ${balance}.`,
+    }, { status: 402 });
+  }
+
+  const batchId = crypto.randomUUID();
+
+  await createCreditTransaction({
+    userId: user.id,
+    amount: -totalCost,
+    type: 'spend',
+    reason: `Automation: re-pose ${quantity} image(s)`,
+  });
+
+  const costPerImage = Math.floor(totalCost / quantity);
+  const remainder = totalCost - costPerImage * quantity;
+
+  const genValues = Array.from({ length: quantity }, (_, i) => ({
+    userId: user.id,
+    batchId,
+    model: 'automation-repose' as const,
+    prompt: `Re-pose image ${i + 1}/${quantity}`,
+    aspectRatio: '1:1' as const,
+    resolution: '1K' as const,
+    referenceImages: i === 0 ? [refUrl] : [] as string[],
+    status: 'processing' as const,
+    creditCost: i === 0 ? costPerImage + remainder : costPerImage,
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  }));
+
+  const insertedGens = await db.insert(generations).values(genValues).returning();
+
+  const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://fanverse.lol'}/api/automations/callback`;
+
+  fetch(N8N_REPOSE_WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ref: refUrl,
+      quant: quantity,
+      batchId,
+      generationId: insertedGens[0].id.toString(),
+      callbackUrl,
+    }),
+  }).catch((err) => {
+    console.error('Failed to call n8n repose webhook:', err);
+  });
+
+  return NextResponse.json({
+    success: true,
+    batchId,
+    generationId: insertedGens[0].id,
+    creditCost: totalCost,
+    quantity,
   });
 }
 

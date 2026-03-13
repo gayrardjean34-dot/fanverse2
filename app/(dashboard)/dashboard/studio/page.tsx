@@ -13,6 +13,7 @@ const VIDEO_MODEL_IDS = ['grok-imagine', 'kling-3.0', 'kling-2.6', 'kling-motion
 
 const SIDEBAR_AUTOMATIONS = {
   'infinite-carousel': { name: 'Infinite Carousel', icon: '🎠' },
+  're-pose': { name: 'Re-pose, Carousels from 1 picture', icon: '🔁' },
   'infinite-selfies': { name: 'Infinite Selfies', icon: '📸' },
   'face-swap': { name: 'EZ Face Swap', icon: '🔄' },
   'ez-face-swap-uncensored': { name: 'EZ Face Swap Semi-Uncensored', icon: '🚀' },

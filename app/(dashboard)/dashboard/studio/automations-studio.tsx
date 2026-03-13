@@ -134,6 +134,16 @@ const AUTOMATIONS = {
     maxQuantity: 1,
     modelFilter: 'automation-outfit-swap',
   },
+  're-pose': {
+    id: 're-pose',
+    name: 'Re-pose, Carousels from 1 picture',
+    icon: '🔁',
+    description: 'Generate multiple re-posed carousel images from a single reference photo',
+    creditPerImage: 22,
+    requiresRefImage: true,
+    maxQuantity: 10,
+    modelFilter: 'automation-repose',
+  },
 } as const;
 
 type AutomationId = keyof typeof AUTOMATIONS;
@@ -175,6 +185,7 @@ function getAutomationName(model: string): string {
   if (model === 'automation-faceswap-uncensored') return 'EZ Face Swap Semi-Uncensored (beta)';
   if (model === 'automation-outfit-swap') return 'Outfit Swap';
   if (model === 'automation-carousel') return 'Infinite Carousel';
+  if (model === 'automation-repose') return 'Re-pose, Carousels from 1 picture';
   return 'Unknown Automation';
 }
 
