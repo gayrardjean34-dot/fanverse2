@@ -6,10 +6,10 @@ const nextConfig: NextConfig = {
     clientSegmentCache: true,
   },
   images: {
-    unoptimized: true,
     remotePatterns: [
       { protocol: 'https', hostname: '**' },
     ],
+    formats: ['image/avif', 'image/webp'],
   },
 };
 
