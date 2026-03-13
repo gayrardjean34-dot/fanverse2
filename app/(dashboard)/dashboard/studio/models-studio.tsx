@@ -610,7 +610,6 @@ export default function ModelsStudio({
   const handleRecreate = useCallback((gen: Generation) => {
     setPrompt(gen.prompt);
     setSystemPrompt(gen.systemPrompt || '');
-    if (gen.systemPrompt) setShowSystemPrompt(true);
     setReferenceImages(gen.referenceImages || []);
 
     const params = {
