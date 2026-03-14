@@ -8,7 +8,7 @@ export default function HomePage() {
     <main>
       {/* Fixed animated background — stays in place when scrolling */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
-        <video src="/images/LOGOO4K.webm" autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-contain" />
+        <video src="/images/LOGOO4K.webm" autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-contain scale-110" />
       </div>
 
       {/* Hero — transparent to let video background show through */}
