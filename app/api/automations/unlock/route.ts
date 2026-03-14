@@ -19,25 +19,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid automation ID' }, { status: 400 });
     }
 
-    if (user.freeUnlockUsed) {
-      return NextResponse.json({ error: 'Free unlock already used' }, { status: 400 });
+    const currentUnlocked = (user.unlockedAutomations as string[]) || [];
+
+    if (currentUnlocked.length >= 2) {
+      return NextResponse.json({ error: 'Free unlock limit reached (2 max)' }, { status: 400 });
     }
 
-    const currentUnlocked = (user.unlockedAutomations as string[]) || [];
     if (currentUnlocked.includes(automationId)) {
       return NextResponse.json({ error: 'Automation already unlocked' }, { status: 400 });
     }
 
+    const newUnlocked = [...currentUnlocked, automationId];
     await db
       .update(users)
       .set({
-        unlockedAutomations: [...currentUnlocked, automationId],
-        freeUnlockUsed: true,
+        unlockedAutomations: newUnlocked,
+        freeUnlockUsed: newUnlocked.length >= 2,
         updatedAt: new Date(),
       })
       .where(eq(users.id, user.id));
 
-    return NextResponse.json({ success: true, unlockedAutomations: [...currentUnlocked, automationId] });
+    return NextResponse.json({ success: true, unlockedAutomations: newUnlocked });
   } catch (error) {
     console.error('Unlock automation error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

@@ -414,6 +414,7 @@ async function handleInfiniteCarousel(body: any, user: { id: number }) {
 async function handleRepose(body: any, user: { id: number }) {
   const refUrl = body.refUrl as string | undefined;
   const quantity = Math.max(1, Math.min(10, parseInt(body.quantity) || 1));
+  const breastRefiner = !!body.breastRefiner;
 
   if (!refUrl) {
     return NextResponse.json({ error: 'Reference image is required.' }, { status: 400 });
@@ -463,6 +464,9 @@ async function handleRepose(body: any, user: { id: number }) {
     body: JSON.stringify({
       ref: refUrl,
       quant: quantity,
+      breast: breastRefiner
+        ? 'This girl is wearing a low-cut push-up bra that clearly contains and supports full breast volume.\nThe breasts are visibly filled, lifted, and rounded inside the bra, pressing outward against the fabric.\nThere is no hollow or empty space: the cups are fully occupied, creating a solid, dense, rounded shape with a clearly defined upper curve.\nThe lifted breast volume creates a strong, rounded contour at the top, with visible fullness and depth beneath the neckline.\nThe effect is unmistakably that of a firm, filled push-up bra, with realistic weight and volume inside the garment. Keep the original breast size, do not make them bigger.\nthe bra is not visible, this not explicit content'
+        : '',
       batchId,
       generationId: insertedGens[0].id.toString(),
       callbackUrl,
