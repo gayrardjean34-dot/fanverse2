@@ -242,6 +242,20 @@ function StudioInner() {
               />
             )
           )}
+
+          {/* Coming soon automation */}
+          <div className="w-full text-left relative border-l-2 border-transparent opacity-50 cursor-not-allowed">
+            <div className="flex items-center gap-3 px-5 py-3">
+              <span className="text-xl leading-none shrink-0">✨</span>
+              <span className="text-sm font-medium truncate text-gray-500">
+                Low neck &amp; Breast Refiner
+              </span>
+              <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gray-500/20 text-gray-400 border border-gray-500/30">
+                soon
+              </span>
+            </div>
+          </div>
+
           <div className="h-2" />
         </div>
 

@@ -724,6 +724,8 @@ export default function AutomationsStudio({
           ratio: carouselRatio,
           breastRefiner,
         };
+      } else if (automationId === 're-pose') {
+        body = { automation: selectedAutomation, refUrl, quantity, breastRefiner };
       } else {
         body = { automation: selectedAutomation, refUrl, quantity };
       }
@@ -852,7 +854,7 @@ export default function AutomationsStudio({
             Unlock {automation.name}
           </h3>
           <p className="text-gray-400 text-sm mb-4">
-            You get <span className="text-[#28B8F6] font-medium">1 free automation unlock</span> with your account. Choose wisely!
+            You get <span className="text-[#28B8F6] font-medium">2 free automation unlocks</span> with your account. Choose wisely!
           </p>
           <Button
             onClick={() => handleFreeUnlock(selectedAutomation)}
@@ -1116,6 +1118,23 @@ export default function AutomationsStudio({
               <div className="flex items-end gap-3">
                 {automationId === 're-pose' && (
                   <span className="text-xs text-orange-400/80 self-center">⚠️ not work all time with selfies</span>
+                )}
+                {automationId === 're-pose' && (
+                  <div className="flex flex-col gap-1 shrink-0">
+                    <Label className="text-xs text-gray-500 invisible">opt</Label>
+                    <button
+                      onClick={() => setBreastRefiner((v) => !v)}
+                      title='Enhance the shape of the breasts to make them more rounded and centered, just like with a push-up bra.'
+                      className={`flex items-center gap-2 px-3 h-12 rounded-xl border text-xs font-medium transition-colors ${
+                        breastRefiner
+                          ? 'bg-[#7F6DE7]/20 border-[#7F6DE7] text-[#7F6DE7]'
+                          : 'bg-[#222] border-[#333] text-gray-500 hover:border-[#7F6DE7]/30 hover:text-gray-300'
+                      }`}
+                    >
+                      {breastRefiner ? <CheckSquare className="h-3.5 w-3.5 shrink-0" /> : <Square className="h-3.5 w-3.5 shrink-0" />}
+                      Breast refiner
+                    </button>
+                  </div>
                 )}
                 <div className="w-32">
                   <Label className="text-xs text-gray-500 mb-1 block">How many images</Label>
