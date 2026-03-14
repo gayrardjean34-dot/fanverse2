@@ -197,6 +197,7 @@ function getAutomationName(model: string): string {
   if (model === 'automation-outfit-swap') return 'Outfit Swap';
   if (model === 'automation-carousel') return 'Infinite Carousel';
   if (model === 'automation-repose') return 'Re-pose, Carousels from 1 picture';
+  if (model === 'automation-breast-refiner') return 'Low neck & Breast Refiner';
   return 'Unknown Automation';
 }
 
@@ -526,7 +527,7 @@ export default function AutomationsStudio({
   const { data: history, mutate: mutateHistory } = useSWR<Generation[]>(
     `/api/generate/history?limit=${historyLimit}&automationsOnly=true`,
     fetcher,
-    { refreshInterval: 3000 }
+    { refreshInterval: 0, revalidateOnFocus: false }
   );
 
   // Show ALL automation history (not filtered by current automation selection)
@@ -1163,7 +1164,7 @@ export default function AutomationsStudio({
 
                 {/* Size switch */}
                 <div className="flex flex-col gap-1 shrink-0">
-                  <Label className="text-xs text-gray-500">Size</Label>
+                  <Label className="text-xs text-gray-500">Breast size</Label>
                   <div className="flex h-12 rounded-xl border border-[#333] overflow-hidden">
                     <button
                       onClick={() => setSizeMode('same')}

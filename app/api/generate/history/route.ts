@@ -32,7 +32,8 @@ export async function GET(request: NextRequest) {
         ne(generations.model, 'automation-faceswap-uncensored'),
         ne(generations.model, 'automation-outfit-swap'),
         ne(generations.model, 'automation-carousel'),
-        ne(generations.model, 'automation-repose')
+        ne(generations.model, 'automation-repose'),
+        ne(generations.model, 'automation-breast-refiner')
       );
     } else if (includeAutomationsOnly) {
       whereClause = and(
@@ -43,7 +44,8 @@ export async function GET(request: NextRequest) {
           eq(generations.model, 'automation-faceswap-uncensored'),
           eq(generations.model, 'automation-outfit-swap'),
           eq(generations.model, 'automation-carousel'),
-          eq(generations.model, 'automation-repose')
+          eq(generations.model, 'automation-repose'),
+          eq(generations.model, 'automation-breast-refiner')
         )
       );
     } else {
