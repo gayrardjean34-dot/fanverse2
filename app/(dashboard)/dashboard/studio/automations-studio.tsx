@@ -19,6 +19,7 @@ import {
   CheckSquare,
   Square,
   CheckCircle2,
+  Info,
 } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -143,6 +144,16 @@ const AUTOMATIONS = {
     requiresRefImage: true,
     maxQuantity: 10,
     modelFilter: 'automation-repose',
+  },
+  'breast-refiner': {
+    id: 'breast-refiner',
+    name: 'Low neck & Breast Refiner',
+    icon: '✨',
+    description: 'Refine breast shape and add low neckline to reference images',
+    creditPerImage: 22,
+    requiresRefImage: true,
+    maxQuantity: 10,
+    modelFilter: 'automation-breast-refiner',
   },
 } as const;
 
@@ -451,6 +462,9 @@ export default function AutomationsStudio({
   const [carouselMultiplier, setCarouselMultiplier] = useState(1);
   const [carouselRatio, setCarouselRatio] = useState<'1:1' | '2:3' | '3:4' | '9:16'>('3:4');
   const [breastRefiner, setBreastRefiner] = useState(false);
+  const [breastRefinerChecked, setBreastRefinerChecked] = useState(false);
+  const [sizeMode, setSizeMode] = useState<'same' | 'bigger'>('same');
+  const [lowNeckChecked, setLowNeckChecked] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [showFirstRunModal, setShowFirstRunModal] = useState(false);
@@ -499,6 +513,7 @@ export default function AutomationsStudio({
   const isFaceSwap = automationId === 'face-swap' || automationId === 'ez-face-swap-uncensored';
   const isOutfitSwap = automationId === 'outfit-swap';
   const isInfiniteCarousel = automationId === 'infinite-carousel';
+  const isBreastRefiner = automationId === 'breast-refiner';
   const checkedTypesCount = isInfiniteCarousel ? Object.values(carouselTypes).filter(Boolean).length : 0;
   const creditCost = isFaceSwap
     ? swapImages.length * automation.creditPerImage
@@ -726,6 +741,15 @@ export default function AutomationsStudio({
         };
       } else if (automationId === 're-pose') {
         body = { automation: selectedAutomation, refUrl, quantity, breastRefiner };
+      } else if (isBreastRefiner) {
+        body = {
+          automation: selectedAutomation,
+          refUrl,
+          quantity,
+          breastRefiner: breastRefinerChecked,
+          sizeMode,
+          lowNeck: lowNeckChecked,
+        };
       } else {
         body = { automation: selectedAutomation, refUrl, quantity };
       }
@@ -1114,7 +1138,93 @@ export default function AutomationsStudio({
               </div>
             )}
 
-            {!isFaceSwap && !isOutfitSwap && !isInfiniteCarousel && (
+            {isBreastRefiner && (
+              <div className="flex items-end gap-3 flex-wrap">
+                {/* Breast Refiner checkbox */}
+                <div className="flex flex-col gap-1 shrink-0">
+                  <div className="flex items-center gap-1">
+                    <Label className="text-xs text-gray-500">Breast Refiner</Label>
+                    <span title="Enhance the shape of the breasts to make them more rounded and centered, just like with a push-up bra." className="cursor-help">
+                      <Info className="h-3 w-3 text-gray-500" />
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setBreastRefinerChecked((v) => !v)}
+                    className={`flex items-center gap-2 px-3 h-12 rounded-xl border text-xs font-medium transition-colors ${
+                      breastRefinerChecked
+                        ? 'bg-[#7F6DE7]/20 border-[#7F6DE7] text-[#7F6DE7]'
+                        : 'bg-[#222] border-[#333] text-gray-500 hover:border-[#7F6DE7]/30 hover:text-gray-300'
+                    }`}
+                  >
+                    {breastRefinerChecked ? <CheckSquare className="h-3.5 w-3.5 shrink-0" /> : <Square className="h-3.5 w-3.5 shrink-0" />}
+                    Breast refiner
+                  </button>
+                </div>
+
+                {/* Size switch */}
+                <div className="flex flex-col gap-1 shrink-0">
+                  <Label className="text-xs text-gray-500">Size</Label>
+                  <div className="flex h-12 rounded-xl border border-[#333] overflow-hidden">
+                    <button
+                      onClick={() => setSizeMode('same')}
+                      className={`px-3 text-xs font-medium transition-colors ${
+                        sizeMode === 'same'
+                          ? 'bg-[#7F6DE7] text-white'
+                          : 'bg-[#222] text-gray-500 hover:text-gray-300'
+                      }`}
+                    >
+                      Same size
+                    </button>
+                    <button
+                      onClick={() => setSizeMode('bigger')}
+                      className={`px-3 text-xs font-medium transition-colors border-l border-[#333] ${
+                        sizeMode === 'bigger'
+                          ? 'bg-[#7F6DE7] text-white'
+                          : 'bg-[#222] text-gray-500 hover:text-gray-300'
+                      }`}
+                    >
+                      Bigger
+                    </button>
+                  </div>
+                </div>
+
+                {/* Low neck checkbox */}
+                <div className="flex flex-col gap-1 shrink-0">
+                  <div className="flex items-center gap-1">
+                    <Label className="text-xs text-gray-500">Low neck</Label>
+                    <span title="Add a low neckline to the outfit." className="cursor-help">
+                      <Info className="h-3 w-3 text-gray-500" />
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setLowNeckChecked((v) => !v)}
+                    className={`flex items-center gap-2 px-3 h-12 rounded-xl border text-xs font-medium transition-colors ${
+                      lowNeckChecked
+                        ? 'bg-[#7F6DE7]/20 border-[#7F6DE7] text-[#7F6DE7]'
+                        : 'bg-[#222] border-[#333] text-gray-500 hover:border-[#7F6DE7]/30 hover:text-gray-300'
+                    }`}
+                  >
+                    {lowNeckChecked ? <CheckSquare className="h-3.5 w-3.5 shrink-0" /> : <Square className="h-3.5 w-3.5 shrink-0" />}
+                    Low neck
+                  </button>
+                </div>
+
+                {/* Quantity */}
+                <div className="w-32">
+                  <Label className="text-xs text-gray-500 mb-1 block">How many images</Label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={quantity}
+                    onChange={(e) => setQuantity(Math.max(1, Math.min(10, parseInt(e.target.value) || 1)))}
+                    className="w-full bg-[#222] border border-[#333] text-[#FEFEFE] rounded-xl px-4 py-3 text-sm outline-none focus:border-[#7F6DE7]/50 transition-colors h-12"
+                  />
+                </div>
+              </div>
+            )}
+
+            {!isFaceSwap && !isOutfitSwap && !isInfiniteCarousel && !isBreastRefiner && (
               <div className="flex items-end gap-3">
                 {automationId === 're-pose' && (
                   <span className="text-xs text-orange-400/80 self-center">⚠️ not work all time with selfies</span>

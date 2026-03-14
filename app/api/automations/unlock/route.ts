@@ -4,7 +4,7 @@ import { db } from '@/lib/db/drizzle';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
-const VALID_AUTOMATIONS = ['infinite-selfies', 'face-swap', 'ez-face-swap-uncensored', 'outfit-swap', 'infinite-carousel', 're-pose'];
+const VALID_AUTOMATIONS = ['infinite-selfies', 'face-swap', 'ez-face-swap-uncensored', 'outfit-swap', 'infinite-carousel', 're-pose', 'breast-refiner'];
 
 export async function POST(request: NextRequest) {
   try {

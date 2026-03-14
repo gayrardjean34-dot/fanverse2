@@ -18,9 +18,8 @@ const VITRINE_ITEMS = [
 const GRADIENT = 'linear-gradient(135deg, rgba(40,184,246,0.85) 0%, rgba(127,109,231,0.85) 50%, rgba(211,36,217,0.85) 100%)';
 
 // ── Model groups ──────────────────────────────────────────────────────────────
-const LEFT_MODEL_IDS  = ['nano-banana-pro', 'nano-banana-2', 'grok-imagine'];
+const LEFT_MODEL_IDS  = ['nano-banana-pro', 'nano-banana-2', 'grok-imagine', 'seedream-4.5'];
 const RIGHT_MODEL_IDS = ['kling-3.0', 'kling-2.6', 'kling-motion-control', 'kling-motion-control-3.0'];
-const BOTTOM_MODEL_ID = 'seedream-4.5';
 
 // ── Vitrine Slideshow ─────────────────────────────────────────────────────────
 function VitrineSlideshow() {
@@ -249,12 +248,6 @@ export default function ModelShowcase() {
           </div>
         </div>
 
-        {/* Seedream 4.5 — centered below, half width */}
-        <div className="max-w-3xl mx-auto mb-24">
-          <div className="w-1/2 mx-auto">
-            <ModelCard id={BOTTOM_MODEL_ID} isActive={ACTIVE_PROVIDER_IDS.includes(BOTTOM_MODEL_ID)} index={LEFT_MODEL_IDS.length + RIGHT_MODEL_IDS.length} />
-          </div>
-        </div>
 
         {/* ── Automations block ── */}
         <div ref={autoRef} style={fadeStyle(autoVisible)} className="text-center mb-12">
