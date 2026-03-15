@@ -501,7 +501,7 @@ async function handleBreastRefiner(body: any, user: { id: number }) {
     return NextResponse.json({ error: 'Reference image is required.' }, { status: 400 });
   }
 
-  const totalCost = quantity * 22;
+  const totalCost = quantity * 8;
 
   const balance = await getUserCreditBalance(user.id);
   if (balance < totalCost) {
