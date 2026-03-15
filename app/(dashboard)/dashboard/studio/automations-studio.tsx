@@ -150,7 +150,7 @@ const AUTOMATIONS = {
     name: 'Low neck & Breast Refiner',
     icon: '✨',
     description: 'Refine breast shape and add low neckline to reference images',
-    creditPerImage: 22,
+    creditPerImage: 8,
     requiresRefImage: true,
     maxQuantity: 10,
     modelFilter: 'automation-breast-refiner',
