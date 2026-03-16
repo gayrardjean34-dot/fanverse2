@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { desc, eq, gt, and, ne, or } from 'drizzle-orm';
+import { desc, asc, eq, gt, and, ne, or } from 'drizzle-orm';
 import { db } from '@/lib/db/drizzle';
 import { generations } from '@/lib/db/schema';
 import { getUser } from '@/lib/db/queries';
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
       .select()
       .from(generations)
       .where(whereClause)
-      .orderBy(desc(generations.createdAt))
+      .orderBy(desc(generations.createdAt), asc(generations.id))
       .limit(limit)
       .offset(offset);
 

@@ -166,20 +166,13 @@ function MediaModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageUrl: gen.resultUrl }),
       });
+      const data = await res.json();
       if (!res.ok) {
-        const data = await res.json();
         alert(data.error || 'Clean & download failed');
         return;
       }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `fanverse-clean-${Date.now()}.jpg`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Download directly from Cloudflare R2 — no Vercel bandwidth
+      await downloadFile(data.url);
     } catch {
       alert('Something went wrong');
     } finally {

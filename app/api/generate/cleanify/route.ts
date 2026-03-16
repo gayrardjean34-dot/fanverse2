@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUser } from '@/lib/db/queries';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { r2, R2_BUCKET, r2PublicUrl } from '@/lib/r2';
 
 const CLEANIFY_API = 'https://aicleanify.com/api/v1';
 
-// Step 1: Submit image for processing, then poll until done, then return download
+// Step 1: Submit image for processing, then poll until done, upload to R2, return URL
 export async function POST(request: NextRequest) {
   try {
     const user = await getUser();
@@ -71,15 +73,21 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'Failed to download processed image.' }, { status: 500 });
         }
 
-        const processedBlob = await downloadRes.arrayBuffer();
+        const buffer = Buffer.from(await downloadRes.arrayBuffer());
         const contentType = downloadRes.headers.get('content-type') || 'image/jpeg';
+        const ext = contentType.split('/')[1]?.split('+')[0] || 'jpg';
 
-        return new NextResponse(processedBlob, {
-          headers: {
-            'Content-Type': contentType,
-            'Content-Disposition': `attachment; filename="fanverse-clean-${Date.now()}.jpg"`,
-          },
-        });
+        // Upload directly to R2 — browser downloads from Cloudflare, zero Vercel bandwidth
+        const key = `cleaned/${user.id}/${Date.now()}.${ext}`;
+        await r2.send(new PutObjectCommand({
+          Bucket: R2_BUCKET,
+          Key: key,
+          Body: buffer,
+          ContentType: contentType,
+        }));
+
+        const cleanUrl = r2PublicUrl(key);
+        return NextResponse.json({ url: cleanUrl });
       }
 
       if (statusData.data?.status === 'failed') {
