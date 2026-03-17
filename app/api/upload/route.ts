@@ -1,33 +1,35 @@
 import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUser } from '@/lib/db/queries';
 import { r2, R2_BUCKET, r2PublicUrl } from '@/lib/r2';
 
-export async function POST(request: NextRequest) {
+// GET /api/upload?filename=xxx&contentType=image/jpeg
+// Returns { uploadUrl, publicUrl } — client uploads directly to R2 via presigned PUT (zero Vercel bandwidth)
+export async function GET(request: NextRequest) {
   try {
     const user = await getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const formData = await request.formData();
-    const file = formData.get('file') as File | null;
+    const filename = request.nextUrl.searchParams.get('filename') || 'image.jpg';
+    const contentType = request.nextUrl.searchParams.get('contentType') || 'image/jpeg';
+    const key = `automations/${user.id}/${Date.now()}-${filename}`;
 
-    if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
-    }
+    const uploadUrl = await getSignedUrl(
+      r2,
+      new PutObjectCommand({
+        Bucket: R2_BUCKET,
+        Key: key,
+        ContentType: contentType,
+      }),
+      { expiresIn: 300 },
+    );
 
-    const key = `automations/${user.id}/${Date.now()}-${file.name}`;
-    await r2.send(new PutObjectCommand({
-      Bucket: R2_BUCKET,
-      Key: key,
-      Body: Buffer.from(await file.arrayBuffer()),
-      ContentType: file.type || 'image/jpeg',
-    }));
-
-    return NextResponse.json({ url: r2PublicUrl(key) });
+    return NextResponse.json({ uploadUrl, publicUrl: r2PublicUrl(key) });
   } catch (error: any) {
-    console.error('Upload error:', error);
+    console.error('Upload presign error:', error);
     return NextResponse.json({ error: error.message || 'Upload failed' }, { status: 500 });
   }
 }
