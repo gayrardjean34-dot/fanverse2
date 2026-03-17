@@ -61,12 +61,18 @@ function compressImage(file: File, maxWidth = 2048, quality = 0.85): Promise<Fil
 
 async function uploadRefImage(file: File): Promise<string> {
   const compressed = await compressImage(file);
-  const fd = new FormData();
-  fd.append('file', compressed);
-  const res = await fetch('/api/upload', { method: 'POST', body: fd });
+  const contentType = compressed.type || 'image/jpeg';
+  const ext = contentType.split('/')[1] || 'jpg';
+  const res = await fetch(`/api/upload?filename=${Date.now()}.${ext}&contentType=${encodeURIComponent(contentType)}`);
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Upload failed');
-  return data.url;
+  const putRes = await fetch(data.uploadUrl, {
+    method: 'PUT',
+    body: compressed,
+    headers: { 'Content-Type': contentType },
+  });
+  if (!putRes.ok) throw new Error('Upload to storage failed');
+  return data.publicUrl;
 }
 
 type Generation = {

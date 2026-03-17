@@ -696,12 +696,18 @@ export default function AutomationsStudio({
 
       async function uploadOne(file: File): Promise<string> {
         const compressed = await compressImage(file);
-        const fd = new FormData();
-        fd.append('file', compressed);
-        const res = await fetch('/api/upload', { method: 'POST', body: fd });
+        const contentType = compressed.type || 'image/jpeg';
+        const ext = contentType.split('/')[1] || 'jpg';
+        const res = await fetch(`/api/upload?filename=${Date.now()}.${ext}&contentType=${encodeURIComponent(contentType)}`);
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Upload failed');
-        return data.url;
+        if (!res.ok) throw new Error(data.error || 'Failed to get upload URL');
+        const putRes = await fetch(data.uploadUrl, {
+          method: 'PUT',
+          body: compressed,
+          headers: { 'Content-Type': contentType },
+        });
+        if (!putRes.ok) throw new Error('Upload to storage failed');
+        return data.publicUrl;
       }
 
       const refUrl = await uploadOne(referenceImage.file);
