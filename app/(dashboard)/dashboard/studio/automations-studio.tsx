@@ -782,8 +782,9 @@ export default function AutomationsStudio({
           }
         }
       }
-    } catch {
-      alert('Something went wrong');
+    } catch (err: any) {
+      console.error('Automation error:', err);
+      alert(err?.message || 'Something went wrong');
     } finally {
       setUploading(false);
       setGenerating(false);
