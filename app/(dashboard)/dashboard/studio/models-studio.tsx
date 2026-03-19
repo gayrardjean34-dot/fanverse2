@@ -530,7 +530,7 @@ export default function ModelsStudio({
   const { data: history, mutate: mutateHistory } = useSWR<Generation[]>(
     `/api/generate/history?limit=${historyLimit}&excludeAutomations=true`,
     fetcher,
-    { refreshInterval: 3000 }
+    { refreshInterval: 0, revalidateOnFocus: false }
   );
 
   const hasPending = history?.some((g) => g.status === 'pending' || g.status === 'processing');
