@@ -1053,16 +1053,19 @@ export default function AutomationsStudio({
             {isInfiniteCarousel && (
               <div className="flex items-end gap-3 flex-1 flex-wrap">
                 {/* Carousel count */}
-                <div className="w-24 shrink-0">
+                <div className="shrink-0">
                   <Label className="text-xs text-gray-500 mb-1 block">Carousels</Label>
                   <input
                     type="number"
                     min="1"
-                    max="5"
-                    value={carouselCount}
-                    onChange={(e) => setCarouselCount(Math.max(1, Math.min(5, parseInt(e.target.value) || 1)))}
-                    className="w-full bg-[#222] border border-[#333] text-[#FEFEFE] rounded-xl px-3 py-3 text-sm outline-none focus:border-[#7F6DE7]/50 transition-colors h-12"
+                    max="1"
+                    value={1}
+                    readOnly
+                    className="w-24 bg-[#1a1a1a] border border-[#333] text-gray-500 rounded-xl px-3 py-3 text-sm outline-none cursor-not-allowed h-12"
                   />
+                  <p className="text-[10px] text-amber-500/80 mt-1 max-w-[200px] leading-tight">
+                    Maximum temporairement limité à 1 pour raisons techniques
+                  </p>
                 </div>
 
                 {/* Shot type checkboxes */}
