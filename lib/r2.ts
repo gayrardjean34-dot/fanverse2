@@ -8,8 +8,8 @@ export const r2 = new S3Client({
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
   },
   // Disable automatic checksums — required for browser presigned PUT uploads
-  requestChecksumCalculation: 'when_required',
-  responseChecksumValidation: 'when_required',
+  requestChecksumCalculation: 'WHEN_REQUIRED',
+  responseChecksumValidation: 'WHEN_REQUIRED',
 });
 
 export const R2_BUCKET = process.env.R2_BUCKET_NAME!;
