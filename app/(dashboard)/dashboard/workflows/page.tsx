@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import useSWR, { mutate } from 'swr';
 import { Workflow, Zap, Loader2, Play, X, Coins, PenTool, Send } from 'lucide-react';
 import { AI_PROVIDERS, PROVIDER_IDS } from '@/lib/ai/providers';
+import AutomationsShowcase from '../../automations-showcase';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -254,7 +255,11 @@ export default function WorkflowsPage() {
   const [showCustomRequest, setShowCustomRequest] = useState(false);
 
   return (
-    <section className="flex-1 p-4 lg:p-8">
+    <section className="flex-1">
+      {/* Automations showcase */}
+      <AutomationsShowcase />
+
+      <div className="p-4 lg:p-8">
       <h1 className="text-2xl lg:text-3xl font-bold mb-8">AI Automations</h1>
 
       {/* Workflow cards */}
@@ -341,6 +346,7 @@ export default function WorkflowsPage() {
 
       {selectedWorkflow && <RunModal workflow={selectedWorkflow} onClose={() => setSelectedWorkflow(null)} />}
       {showCustomRequest && <CustomWorkflowModal onClose={() => setShowCustomRequest(false)} />}
+      </div>
     </section>
   );
 }

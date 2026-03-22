@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Sparkles, Zap, Shield, Cpu, Users } from 'lucide-react';
 import Link from 'next/link';
 import ModelShowcase from './model-showcase';
+import AutomationsShowcase from './automations-showcase';
 
 export default function HomePage() {
   return (
@@ -93,6 +94,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Automations showcase */}
+      <AutomationsShowcase />
 
       {/* Models showcase */}
       <ModelShowcase />
