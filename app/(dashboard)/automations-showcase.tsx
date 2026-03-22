@@ -115,10 +115,10 @@ function ResultSlideshow({ images }: { images: string[] }) {
   };
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex flex-col items-center gap-2 w-full">
       <div
-        className="relative rounded-2xl overflow-hidden bg-[#0a0a0a] border border-white/10 shadow-xl shadow-black/40"
-        style={{ width: '100%', aspectRatio: '3/4' }}
+        className="relative w-full rounded-2xl overflow-hidden bg-[#0a0a0a] border border-white/10 shadow-xl shadow-black/50"
+        style={{ aspectRatio: '3/4' }}
       >
         {images.map((src, i) => (
           <img
@@ -131,8 +131,8 @@ function ResultSlideshow({ images }: { images: string[] }) {
         ))}
 
         {/* Result label */}
-        <div className="absolute top-2 left-2 z-10 px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-sm border border-white/10">
-          <span className="text-[10px] font-semibold text-white/80 tracking-wide">
+        <div className="absolute top-2.5 left-2.5 z-10 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-sm border border-white/10">
+          <span className="text-xs font-semibold text-white/80 tracking-wide">
             {images.length > 1 ? `Result ${current + 1}/${images.length}` : 'Result'}
           </span>
         </div>
@@ -141,28 +141,23 @@ function ResultSlideshow({ images }: { images: string[] }) {
           <>
             <button
               onClick={() => navigate(-1)}
-              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm border border-white/15 text-white/70 hover:text-white hover:bg-black/70 transition-all"
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm border border-white/15 text-white/70 hover:text-white hover:bg-black/70 transition-all"
             >
-              <ChevronLeft className="h-3.5 w-3.5" />
+              <ChevronLeft className="h-4 w-4" />
             </button>
             <button
               onClick={() => navigate(1)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm border border-white/15 text-white/70 hover:text-white hover:bg-black/70 transition-all"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm border border-white/15 text-white/70 hover:text-white hover:bg-black/70 transition-all"
             >
-              <ChevronRight className="h-3.5 w-3.5" />
+              <ChevronRight className="h-4 w-4" />
             </button>
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
               {images.map((_, i) => (
                 <button
                   key={i}
-                  onClick={() => {
-                    setCurrent(i);
-                    startInterval();
-                  }}
+                  onClick={() => { setCurrent(i); startInterval(); }}
                   className={`rounded-full transition-all duration-300 ${
-                    i === current
-                      ? 'w-3.5 h-1.5 bg-white'
-                      : 'w-1.5 h-1.5 bg-white/30 hover:bg-white/60'
+                    i === current ? 'w-4 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/30 hover:bg-white/60'
                   }`}
                 />
               ))}
@@ -170,7 +165,7 @@ function ResultSlideshow({ images }: { images: string[] }) {
           </>
         )}
       </div>
-      <span className="text-[11px] text-gray-500 font-medium">
+      <span className="text-xs text-gray-500 font-medium">
         {images.length > 1 ? `${images.length} generated results` : 'Generated result'}
       </span>
     </div>
@@ -185,81 +180,84 @@ function AutomationCard({ data }: { data: AutomationData }) {
   return (
     <div className="w-full">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <span className="text-2xl leading-none">{data.icon}</span>
-            <h3 className="text-xl font-bold text-white leading-tight">{data.name}</h3>
+          <div className="flex items-center gap-2.5 mb-2.5 flex-wrap">
+            <span className="text-3xl leading-none">{data.icon}</span>
+            <h3 className="text-2xl font-bold text-white leading-tight">{data.name}</h3>
             {data.badge === 'beta' && (
               <span
                 title="This automation is currently in beta — features may evolve."
-                className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 cursor-help"
+                className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 cursor-help"
               >
-                <Info className="h-2.5 w-2.5" />
+                <Info className="h-3 w-3" />
                 Beta
               </span>
             )}
           </div>
-          <p className="text-gray-400 text-sm leading-relaxed max-w-lg">{data.description}</p>
+          <p className="text-gray-400 text-base leading-relaxed max-w-xl">{data.description}</p>
         </div>
         <Button
           asChild
-          size="sm"
-          className="shrink-0 bg-[#7F6DE7] hover:bg-[#7F6DE7]/80 text-white font-semibold self-start"
+          className="shrink-0 bg-[#7F6DE7] hover:bg-[#7F6DE7]/80 text-white font-semibold self-start px-5"
         >
           <Link href={data.studioPath}>
             Try it
-            <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+            <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>
       </div>
 
       {/* Visual: Inputs → Arrow → Output */}
-      <div className="flex items-center justify-center gap-3 sm:gap-6">
+      <div className="flex items-center justify-center gap-5 sm:gap-10">
+
         {/* Inputs */}
-        <div className={`flex ${hasTwoInputs ? 'items-center gap-2' : ''} shrink-0`}>
-          {data.inputs.map((input, idx) => (
-            <div key={idx} className="flex flex-col items-center gap-1.5 relative">
-              {idx > 0 && (
-                <div className="absolute -left-3.5 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-5 h-5 rounded-full bg-[#1a1a1a] border border-white/15 text-white/50 text-xs font-bold">
-                  +
+        {hasTwoInputs ? (
+          // Two inputs stacked vertically → bigger images
+          <div className="flex flex-col items-center gap-3 shrink-0" style={{ width: 'clamp(130px, 18vw, 200px)' }}>
+            {data.inputs.map((input, idx) => (
+              <div key={idx} className="relative w-full flex flex-col items-center gap-1.5">
+                {idx > 0 && (
+                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#1a1a1a] border border-white/15 text-white/50 text-sm font-bold -mt-1 mb-0.5">
+                    +
+                  </div>
+                )}
+                <div
+                  className="w-full rounded-xl overflow-hidden bg-[#0a0a0a] border border-white/10 shadow-lg"
+                  style={{ aspectRatio: '3/4' }}
+                >
+                  <img src={input.src} alt={input.label} className="w-full h-full object-cover" />
                 </div>
-              )}
-              <div
-                className="rounded-xl overflow-hidden bg-[#0a0a0a] border border-white/10 shadow-lg"
-                style={{
-                  width: hasTwoInputs ? 'clamp(80px, 12vw, 120px)' : 'clamp(110px, 16vw, 160px)',
-                  aspectRatio: '3/4',
-                }}
-              >
-                <img
-                  src={input.src}
-                  alt={input.label}
-                  className="w-full h-full object-cover"
-                />
+                <span className="text-xs text-gray-500 font-medium text-center">{input.label}</span>
               </div>
-              <span className="text-[10px] text-gray-500 font-medium text-center max-w-[100px]">
-                {input.label}
-              </span>
+            ))}
+          </div>
+        ) : (
+          // Single input
+          <div className="flex flex-col items-center gap-2 shrink-0" style={{ width: 'clamp(160px, 22vw, 250px)' }}>
+            <div
+              className="w-full rounded-xl overflow-hidden bg-[#0a0a0a] border border-white/10 shadow-lg"
+              style={{ aspectRatio: '3/4' }}
+            >
+              <img src={data.inputs[0].src} alt={data.inputs[0].label} className="w-full h-full object-cover" />
             </div>
-          ))}
-        </div>
+            <span className="text-xs text-gray-500 font-medium">{data.inputs[0].label}</span>
+          </div>
+        )}
 
         {/* Arrow */}
-        <div className="shrink-0 flex flex-col items-center gap-1">
-          <div className="flex items-center justify-center w-9 h-9 rounded-full bg-[#7F6DE7]/15 border border-[#7F6DE7]/30">
-            <ArrowRight className="h-5 w-5 text-[#7F6DE7]" />
+        <div className="shrink-0 flex flex-col items-center gap-1.5">
+          <div className="flex items-center justify-center w-11 h-11 rounded-full bg-[#7F6DE7]/15 border border-[#7F6DE7]/30">
+            <ArrowRight className="h-6 w-6 text-[#7F6DE7]" />
           </div>
-          <span className="text-[9px] text-gray-600 font-medium tracking-wide uppercase">AI</span>
+          <span className="text-[10px] text-gray-600 font-semibold tracking-widest uppercase">AI</span>
         </div>
 
         {/* Output */}
-        <div
-          className="shrink-0"
-          style={{ width: 'clamp(110px, 16vw, 180px)' }}
-        >
+        <div className="shrink-0" style={{ width: 'clamp(160px, 22vw, 260px)' }}>
           <ResultSlideshow images={data.outputs} />
         </div>
+
       </div>
     </div>
   );
@@ -269,19 +267,30 @@ function AutomationCard({ data }: { data: AutomationData }) {
 
 export default function AutomationsShowcase() {
   const [current, setCurrent] = useState(0);
-  const [transitioning, setTransitioning] = useState(false);
+  const [visible, setVisible] = useState(true);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Transition helper: fade out → swap content → fade in
+  // Uses double rAF after content swap so CSS transition triggers correctly
+  const transitionTo = useCallback((getNext: (c: number) => number) => {
+    setVisible(false);
+    setTimeout(() => {
+      setCurrent((c) => getNext(c));
+      // Double rAF: ensures the DOM has painted the new content before we trigger fade-in
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setVisible(true);
+        });
+      });
+    }, 280);
+  }, []);
 
   const startInterval = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => {
-      setTransitioning(true);
-      setTimeout(() => {
-        setCurrent((c) => (c + 1) % AUTOMATIONS.length);
-        setTransitioning(false);
-      }, 280);
-    }, 5000);
-  }, []);
+      transitionTo((c) => (c + 1) % AUTOMATIONS.length);
+    }, 10000);
+  }, [transitionTo]);
 
   useEffect(() => {
     startInterval();
@@ -291,27 +300,20 @@ export default function AutomationsShowcase() {
   }, [startInterval]);
 
   const navigate = (dir: 1 | -1) => {
-    setTransitioning(true);
-    setTimeout(() => {
-      setCurrent((c) => (c + dir + AUTOMATIONS.length) % AUTOMATIONS.length);
-      setTransitioning(false);
-    }, 200);
+    transitionTo((c) => (c + dir + AUTOMATIONS.length) % AUTOMATIONS.length);
     startInterval();
   };
 
   const goTo = (idx: number) => {
     if (idx === current) return;
-    setTransitioning(true);
-    setTimeout(() => {
-      setCurrent(idx);
-      setTransitioning(false);
-    }, 200);
+    transitionTo(() => idx);
     startInterval();
   };
 
   return (
     <section className="py-20 bg-transparent relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
         {/* Section header */}
         <div className="text-center mb-10">
           <h2 className="text-3xl font-bold mb-3">
@@ -323,12 +325,12 @@ export default function AutomationsShowcase() {
         </div>
 
         {/* Automation tabs */}
-        <div className="flex justify-center gap-2 mb-6 flex-wrap">
+        <div className="flex justify-center gap-2 mb-8 flex-wrap">
           {AUTOMATIONS.map((auto, idx) => (
             <button
               key={auto.id}
               onClick={() => goTo(idx)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
                 idx === current
                   ? 'bg-[#7F6DE7]/20 text-[#7F6DE7] border border-[#7F6DE7]/40'
                   : 'bg-[#111]/80 text-gray-400 border border-white/8 hover:border-white/20 hover:text-gray-300'
@@ -341,20 +343,20 @@ export default function AutomationsShowcase() {
         </div>
 
         {/* Main card */}
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <div
-            className="bg-[#111]/80 backdrop-blur-sm border border-white/8 rounded-2xl p-6 lg:p-8"
+            className="bg-[#111]/80 backdrop-blur-sm border border-white/8 rounded-2xl p-8 lg:p-10"
             style={{
-              opacity: transitioning ? 0 : 1,
-              transform: transitioning ? 'translateY(6px)' : 'translateY(0)',
-              transition: 'opacity 0.28s ease, transform 0.28s ease',
+              opacity: visible ? 1 : 0,
+              transform: visible ? 'translateY(0)' : 'translateY(8px)',
+              transition: 'opacity 0.3s ease, transform 0.3s ease',
             }}
           >
             <AutomationCard data={AUTOMATIONS[current]} />
           </div>
 
           {/* Bottom navigation */}
-          <div className="flex items-center justify-between mt-4 px-1">
+          <div className="flex items-center justify-between mt-5 px-1">
             <button
               onClick={() => navigate(-1)}
               className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-300 transition-colors"
@@ -362,14 +364,14 @@ export default function AutomationsShowcase() {
               <ChevronLeft className="h-4 w-4" />
               Prev
             </button>
-            <div className="flex gap-1.5">
+            <div className="flex gap-2">
               {AUTOMATIONS.map((_, i) => (
                 <button
                   key={i}
                   onClick={() => goTo(i)}
                   className={`rounded-full transition-all duration-300 ${
                     i === current
-                      ? 'w-4 h-1.5 bg-[#7F6DE7]'
+                      ? 'w-5 h-1.5 bg-[#7F6DE7]'
                       : 'w-1.5 h-1.5 bg-white/20 hover:bg-white/40'
                   }`}
                 />
@@ -384,6 +386,7 @@ export default function AutomationsShowcase() {
             </button>
           </div>
         </div>
+
       </div>
     </section>
   );
