@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { Info } from 'lucide-react';
 import ModelsStudio from './models-studio';
 import AutomationsStudio from './automations-studio';
 import { AI_PROVIDERS } from '@/lib/ai/providers';
@@ -13,10 +14,10 @@ const VIDEO_MODEL_IDS = ['kling-3.0', 'kling-2.6', 'kling-motion-control-3.0', '
 
 const SIDEBAR_AUTOMATIONS = {
   'infinite-carousel': { name: 'Infinite Carousel', icon: '🎠' },
-  're-pose': { name: 'Re-pose, Carousels from 1 picture', icon: '🔁' },
   'infinite-selfies': { name: 'Infinite Selfies', icon: '📸' },
   'face-swap': { name: 'EZ Face Swap', icon: '🔄' },
   'ez-face-swap-uncensored': { name: 'EZ Face Swap Semi-Uncensored', icon: '🚀' },
+  're-pose': { name: 'Re-pose, Carousels from 1 picture', icon: '🔁' },
   'outfit-swap': { name: 'Outfit Swap', icon: '👗' },
   'breast-refiner': { name: 'Low neck & Breast Refiner', icon: '✨' },
 } as const;
@@ -121,8 +122,12 @@ function AutomationItem({
           {name}
         </span>
         {hot && (
-          <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30">
-            🔥 Hot
+          <span
+            title="This automation is currently in beta — some features may evolve."
+            className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 cursor-help"
+          >
+            <Info className="h-2.5 w-2.5" />
+            Beta
           </span>
         )}
       </div>
@@ -138,6 +143,7 @@ function AutomationItem({
 function StudioInner() {
   const searchParams = useSearchParams();
   const modelParam = searchParams.get('model');
+  const automationParam = searchParams.get('automation');
 
   const [activeSection, setActiveSection] = useState<ActiveSection>('models');
   const [selectedModel, setSelectedModel] = useState<string>('nano-banana-pro');
@@ -150,6 +156,14 @@ function StudioInner() {
       setActiveSection('models');
     }
   }, [modelParam]);
+
+  // Apply automation from URL param on mount
+  useEffect(() => {
+    if (automationParam && automationParam in SIDEBAR_AUTOMATIONS) {
+      setSelectedAutomation(automationParam as AutomationId);
+      setActiveSection('automations');
+    }
+  }, [automationParam]);
 
   return (
     <div className="flex h-[calc(100dvh-68px)] bg-[#191919]">
