@@ -256,6 +256,11 @@ export default function WorkflowsPage() {
 
   return (
     <section className="flex-1">
+      {/* Animated background */}
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        <video src="/images/LOGOO4K.webm" autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-contain scale-110" />
+      </div>
+
       {/* Automations showcase */}
       <AutomationsShowcase />
 
