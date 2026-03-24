@@ -255,7 +255,7 @@ function AutomationCard({ data }: { data: AutomationData }) {
 
         {/* Output */}
         <div className="shrink-0" style={{ width: 'clamp(160px, 22vw, 260px)' }}>
-          <ResultSlideshow images={data.outputs} />
+          <ResultSlideshow key={data.id} images={data.outputs} />
         </div>
 
       </div>
