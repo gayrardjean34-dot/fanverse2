@@ -70,7 +70,7 @@ const AUTOMATIONS: AutomationData[] = [
       { src: '/images/refemma.png', label: 'Reference face' },
       { src: '/images/ezfaceswap.jpg', label: 'Image to swap' },
     ],
-    outputs: ['/images/ezfaceswapfini.png'],
+    outputs: ['/images/ezfaceswapfiniJPG.jpg'],
   },
   {
     id: 'ez-face-swap-uncensored',
@@ -84,7 +84,7 @@ const AUTOMATIONS: AutomationData[] = [
       { src: '/images/refemma.png', label: 'Reference face' },
       { src: '/images/plageselfie.jpg', label: 'Image to swap' },
     ],
-    outputs: ['/images/plageselfieok.png'],
+    outputs: ['/images/plageselfieokJPG.jpg'],
   },
 ];
 
