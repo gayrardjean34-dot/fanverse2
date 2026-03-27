@@ -132,6 +132,13 @@ export async function POST(request: NextRequest) {
         input.prompt = prompt;
         input.aspect_ratio = aspectRatio || '1:1';
         input.quality = resolution === '4K' ? 'high' : 'basic';
+      } else if (model === 'nano-banana-pro') {
+        // Nano Banana Pro — uses image_input (up to 8 images)
+        input.prompt = systemPrompt ? `${systemPrompt}\n\n${prompt}` : prompt;
+        input.aspect_ratio = aspectRatio || '1:1';
+        input.resolution = resolution;
+        input.output_format = 'png';
+        if (referenceImages.length > 0) input.image_input = referenceImages;
       } else if (model === 'nano-banana-2') {
         // Nano Banana 2 — uses image_input instead of reference_images
         input.prompt = systemPrompt ? `${systemPrompt}\n\n${prompt}` : prompt;
@@ -141,7 +148,7 @@ export async function POST(request: NextRequest) {
         input.google_search = false;
         if (referenceImages.length > 0) input.image_input = referenceImages;
       } else if (providerConfig.type === 'image') {
-        // Image models (nano-banana-pro, seedream)
+        // Image models (seedream, etc.)
         input.prompt = systemPrompt ? `${systemPrompt}\n\n${prompt}` : prompt;
         input.aspect_ratio = aspectRatio;
         input.resolution = resolution;
